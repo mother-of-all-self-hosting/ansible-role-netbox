@@ -1,0 +1,250 @@
+---
+
+# Project source code URL: https://github.com/netbox-community/netbox-docker/
+# NetBox source code URL: https://github.com/netbox-community/netbox
+
+netbox_enabled: true
+
+netbox_identifier: netbox
+
+netbox_uid: ''
+netbox_gid: ''
+
+netbox_version: v3.4.6-2.5.1
+
+# The hostname at which netbox is served.
+netbox_hostname: ''
+
+# The path at which netbox is served.
+# This value must either be `/` or not end with a slash (e.g. `/netbox`).
+netbox_path_prefix: /
+
+netbox_base_path: "/{{ netbox_identifier }}"
+netbox_media_path: "{{ netbox_base_path }}/media"
+netbox_reports_path: "{{ netbox_base_path }}/reports"
+netbox_scripts_path: "{{ netbox_base_path }}/scripts"
+
+netbox_container_image: "{{ netbox_container_image_registry_prefix }}netboxcommunity/netbox:{{ netbox_container_image_tag }}"
+netbox_container_image_registry_prefix: docker.io/
+netbox_container_image_tag: "{{ netbox_version }}"
+netbox_container_image_force_pull: "{{ netbox_container_image.endswith(':latest') }}"
+
+# The base container network. It will be auto-created by this role if it doesn't exist already.
+netbox_container_network: "{{ netbox_identifier }}"
+
+# A list of additional container networks that the container would be connected to.
+# The role does not create these networks, so make sure they already exist.
+# Use this to expose this container to another reverse proxy, which runs in a different container network.
+netbox_container_additional_networks: "{{ netbox_container_additional_networks_auto + netbox_container_additional_networks_custom }}"
+netbox_container_additional_networks_auto: []
+netbox_container_additional_networks_custom: []
+
+# Specifies how the container publishes its HTTP port
+#
+# Takes an "<ip>:<port>" value (e.g. "127.0.0.1:8000"), just a port number or an empty string to not expose.
+netbox_container_http_bind_port: ''
+
+# netbox_container_labels_traefik_enabled controls whether labels to assist a Traefik reverse-proxy will be attached to the container.
+# See `../templates/labels.j2` for details.
+#
+# To inject your own other container labels, see `netbox_container_labels_additional_labels`.
+netbox_container_labels_traefik_enabled: true
+netbox_container_labels_traefik_docker_network: "{{ netbox_container_network }}"
+netbox_container_labels_traefik_hostname: "{{ netbox_hostname }}"
+# The path prefix must either be `/` or not end with a slash (e.g. `/netbox`).
+netbox_container_labels_traefik_path_prefix: "{{ netbox_path_prefix }}"
+netbox_container_labels_traefik_rule: "Host(`{{ netbox_container_labels_traefik_hostname }}`){% if netbox_container_labels_traefik_path_prefix != '/' %} && PathPrefix(`{{ netbox_container_labels_traefik_path_prefix }}`){% endif %}"
+netbox_container_labels_traefik_priority: 0
+netbox_container_labels_traefik_entrypoints: web-secure
+netbox_container_labels_traefik_tls: "{{ netbox_container_labels_traefik_entrypoints != 'web' }}"
+netbox_container_labels_traefik_tls_certResolver: default  # noqa var-naming
+
+# Controls which additional headers to attach to all HTTP requests.
+# To add your own custom request headers, use `netbox_container_labels_traefik_additional_response_headers_custom`
+netbox_container_labels_traefik_additional_request_headers: "{{ netbox_container_labels_traefik_additional_request_headers_auto | combine(netbox_container_labels_traefik_additional_request_headers_custom) }}"
+netbox_container_labels_traefik_additional_request_headers_auto: {}
+netbox_container_labels_traefik_additional_request_headers_custom: {}
+
+# Controls which additional headers to attach to all HTTP responses.
+# To add your own custom response headers, use `netbox_container_labels_traefik_additional_response_headers_custom`
+netbox_container_labels_traefik_additional_response_headers: "{{ netbox_container_labels_traefik_additional_response_headers_auto | combine(netbox_container_labels_traefik_additional_response_headers_custom) }}"
+netbox_container_labels_traefik_additional_response_headers_auto: |
+  {{
+    {}
+    | combine ({'X-XSS-Protection': netbox_http_header_xss_protection} if netbox_http_header_xss_protection else {})
+    | combine ({'X-Frame-Options': netbox_http_header_frame_options} if netbox_http_header_frame_options else {})
+    | combine ({'X-Content-Type-Options': netbox_http_header_content_type_options} if netbox_http_header_content_type_options else {})
+    | combine ({'Content-Security-Policy': netbox_http_header_content_security_policy} if netbox_http_header_content_security_policy else {})
+    | combine ({'Permission-Policy': netbox_http_header_content_permission_policy} if netbox_http_header_content_permission_policy else {})
+    | combine ({'Strict-Transport-Security': netbox_http_header_strict_transport_security} if netbox_http_header_strict_transport_security and netbox_container_labels_traefik_tls else {})
+  }}
+netbox_container_labels_traefik_additional_response_headers_custom: {}
+
+# netbox_container_labels_additional_labels contains a multiline string with additional labels to add to the container label file.
+# See `../templates/labels.j2` for details.
+#
+# Example:
+# netbox_container_labels_additional_labels: |
+#   my.label=1
+#   another.label="here"
+netbox_container_labels_additional_labels: ''
+
+# A list of additional "volumes" to mount in the container.
+# This list gets populated dynamically at runtime. You can provide a different default value,
+# if you wish to mount your own files into the container.
+# Contains definition objects like this: `{"type": "bind", "src": "/outside", "dst": "/inside", "options": "readonly"}.
+# See the `--mount` documentation for the `docker run` command.
+netbox_container_additional_volumes: []
+
+# A list of extra arguments to pass to the container
+netbox_container_extra_arguments: []
+
+netbox_database_hostname: ''
+netbox_database_port: 5432
+netbox_database_name: netbox
+netbox_database_username: netbox
+netbox_database_password: ''
+
+# Controls the `SECRET_KEY` environment variable
+# Generating a strong key (e.g. `pwgen -s 64 1`) is recommended
+netbox_environment_variable_secret_key: ''
+
+# Controls the `BASE_PATH` environment variable.
+# For Netbox installed at https://example.com/netbox/, we need to set this to 'netbox/'.
+# For an installation at the root path, we need to set this to an empty value (not to `/`).
+netbox_environment_variable_base_path: "{{ '' if netbox_path_prefix == '/' else (netbox_path_prefix[1:] + '/') }}"
+
+# Controls the `CORS_ORIGIN_ALLOW_ALL` environment variable
+netbox_environment_variable_cors_origin_allow_all: true
+
+# Controls the `METRICS_ENABLED` environment variable
+netbox_environment_variable_metrics_enabled: false
+
+# Controls the `WEBHOOKS_ENABLED` environment variable
+netbox_environment_variable_webhooks_enabled: true
+
+# Controls the `GRAPHQL_ENABLED` environment variable
+netbox_environment_variable_graphql_enabled: true
+
+# Controls the `HOUSEKEEPING_INTERVAL` environment variable
+netbox_environment_variable_housekeeping_interval: 86400
+
+# Controls the `REDIS_DATABASE` environment variable
+netbox_environment_variable_redis_database: 0
+# Controls the `REDIS_HOST` environment variable
+netbox_environment_variable_redis_host: ''
+# Controls the `REDIS_PORT` environment variable
+netbox_environment_variable_redis_port: 6379
+# Controls the `REDIS_INSECURE_SKIP_TLS_VERIFY` environment variable
+netbox_environment_variable_redis_insecure_skip_tls_verify: false
+# Controls the `REDIS_USERNAME` environment variable
+netbox_environment_variable_redis_username: ''
+# Controls the `REDIS_PASSWORD` environment variable
+netbox_environment_variable_redis_password: ''
+# Controls the `REDIS_TLS` environment variable
+netbox_environment_variable_redis_tls: false
+
+# Controls the `REDIS_CACHE_DATABASE` environment variable
+netbox_environment_variable_redis_cache_database: 1
+# Controls the `REDIS_CACHE_HOST` environment variable
+netbox_environment_variable_redis_cache_host: ''
+# Controls the `REDIS_CACHE_PORT` environment variable
+netbox_environment_variable_redis_cache_port: 6379
+# Controls the `REDIS_CACHE_INSECURE_SKIP_TLS_VERIFY` environment variable
+netbox_environment_variable_redis_cache_insecure_skip_tls_verify: false
+# Controls the `REDIS_CACHE_USERNAME` environment variable
+netbox_environment_variable_redis_cache_username: ''
+# Controls the `REDIS_CACHE_PASSWORD` environment variable
+netbox_environment_variable_redis_cache_password: ''
+# Controls the `REDIS_CACHE_TLS` environment variable
+netbox_environment_variable_redis_cache_tls: false
+
+# To create a superuser with some initial credentials, specify the variables below.
+# Changing the password variable subsequently will not reset an existing user's actual password.
+netbox_environment_variable_superuser_api_token: ''
+netbox_environment_variable_superuser_name: ''
+netbox_environment_variable_superuser_email: ''
+netbox_environment_variable_superuser_password: ''
+
+# Controls the `EMAIL_FROM` environment variable
+netbox_environment_variable_email_from: ''
+# Controls the `EMAIL_PASSWORD` environment variable
+netbox_environment_variable_email_password: ''
+# Controls the `EMAIL_PORT` environment variable
+netbox_environment_variable_email_port: 587
+# Controls the `EMAIL_SERVER` environment variable
+netbox_environment_variable_email_server: ''
+# Controls the `EMAIL_TIMEOUT` environment variable
+netbox_environment_variable_email_timeout: 5
+# Controls the `EMAIL_USERNAME` environment variable
+netbox_environment_variable_email_username: ''
+# Controls the `EMAIL_USE_SSL` environment variable
+# Also see: netbox_environment_variable_email_use_tls
+netbox_environment_variable_email_use_ssl: false
+# Controls the `EMAIL_USE_TLS` environment variable
+# Also see: netbox_environment_variable_email_use_ssl
+netbox_environment_variable_email_use_tls: true
+
+# Controls the `SKIP_SUPERUSER` environment variable, which controls whether
+# the superuser account (see the `netbox_environment_variable_superuser_*` variables) would be created if missing.
+netbox_environment_variable_skip_superuser: "{{ netbox_environment_variable_superuser_name == '' }}"
+
+# Additional environment variables.
+netbox_environment_variables_additional_variables: ''
+
+# Specifies the value of the `X-XSS-Protection` header
+# Stops pages from loading when they detect reflected cross-site scripting (XSS) attacks.
+#
+# Learn more about it is here:
+# - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection
+# - https://portswigger.net/web-security/cross-site-scripting/reflected
+netbox_http_header_xss_protection: "1; mode=block"
+
+# Specifies the value of the `X-Frame-Options` header which controls whether framing can happen.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+netbox_http_header_frame_options: SAMEORIGIN
+
+# Specifies the value of the `X-Content-Type-Options` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
+netbox_http_header_content_type_options: nosniff
+
+# Specifies the value of the `Content-Security-Policy` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
+netbox_http_header_content_security_policy: frame-ancestors 'self'
+
+# Specifies the value of the `Permission-Policy` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permission-Policy
+netbox_http_header_content_permission_policy: "{{ 'interest-cohort=()' if netbox_floc_optout_enabled else '' }}"
+
+# Specifies the value of the `Strict-Transport-Security` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+netbox_http_header_strict_transport_security: "max-age=31536000; includeSubDomains{{ '; preload' if netbox_hsts_preload_enabled else '' }}"
+
+# Controls whether to send a "Permissions-Policy interest-cohort=();" header along with all responses
+#
+# Learn more about what it is here:
+# - https://www.eff.org/deeplinks/2021/03/googles-floc-terrible-idea
+# - https://paramdeo.com/blog/opting-your-website-out-of-googles-floc-network
+# - https://amifloced.org/
+#
+# Of course, a better solution is to just stop using browsers (like Chrome), which participate in such tracking practices.
+# See: `netbox_content_permission_policy`
+netbox_floc_optout_enabled: true
+
+# Controls if HSTS preloading is enabled
+#
+# In its strongest and recommended form, the [HSTS policy](https://www.chromium.org/hsts) includes all subdomains, and
+# indicates a willingness to be "preloaded" into browsers:
+# `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+# For more information visit:
+# - https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security
+# - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+# - https://hstspreload.org/#opt-in
+# See: `netbox_http_header_strict_transport_security`
+netbox_hsts_preload_enabled: false
+
+# List of systemd services that netbox.service depends on
+netbox_systemd_required_services_list: "{{ netbox_systemd_required_services_list_default + netbox_systemd_required_services_list_auto + netbox_systemd_required_services_list_custom }}"
+netbox_systemd_required_services_list_default: ['docker.service']
+netbox_systemd_required_services_list_auto: []
+netbox_systemd_required_services_list_custom: []

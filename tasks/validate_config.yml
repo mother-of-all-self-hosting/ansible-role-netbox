@@ -1,0 +1,52 @@
+---
+
+- name: Fail if required NetBox settings not defined
+  ansible.builtin.fail:
+    msg: >
+      You need to define a required configuration setting (`{{ item }}`).
+  when: "vars[item] == ''"
+  with_items:
+    - netbox_identifier
+    - netbox_uid
+    - netbox_gid
+    - netbox_hostname
+    - netbox_path_prefix
+    - netbox_container_network
+
+    - netbox_database_hostname
+    - netbox_database_name
+    - netbox_database_username
+    - netbox_database_password
+
+    - netbox_environment_variable_redis_host
+    - netbox_environment_variable_redis_cache_host
+
+    - netbox_environment_variable_secret_key
+
+# Prevent a common gotcha
+- name: Fail if netbox_environment_variable_superuser_name contains spaces
+  ansible.builtin.fail:
+    msg: >-
+      The `netbox_environment_variable_superuser_name` variable, despite its confusing name,
+      must contain a username and not a full name with spaces, etc.
+  when: "' ' in netbox_environment_variable_superuser_name"
+
+- when: netbox_container_labels_traefik_enabled | bool
+  block:
+    - name: Fail if required NetBox Traefik settings not defined
+      ansible.builtin.fail:
+        msg: >-
+          You need to define a required configuration setting (`{{ item }}`).
+      when: "vars[item] == ''"
+      with_items:
+        - netbox_container_labels_traefik_hostname
+        - netbox_container_labels_traefik_path_prefix
+
+    # We ensure it doesn't end with a slash, because we handle both (slash and no-slash).
+    # Knowing that `netbox_container_labels_traefik_path_prefix` does not end with a slash
+    # ensures we know how to set these routes up without having to do "does it end with a slash" checks elsewhere.
+    - name: Fail if netbox_container_labels_traefik_path_prefix ends with a slash
+      ansible.builtin.fail:
+        msg: >-
+          netbox_container_labels_traefik_path_prefix (`{{ netbox_container_labels_traefik_path_prefix }}`) must either be `/` or not end with a slash (e.g. `/netbox`).
+      when: "netbox_container_labels_traefik_path_prefix != '/' and netbox_container_labels_traefik_path_prefix[-1] == '/'"

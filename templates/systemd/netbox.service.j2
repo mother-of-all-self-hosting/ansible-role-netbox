@@ -1,0 +1,75 @@
+#jinja2: lstrip_blocks: "True"
+[Unit]
+Description=NetBox ({{ netbox_identifier }})
+{% for service in netbox_systemd_required_services_list %}
+Requires={{ service }}
+After={{ service }}
+{% endfor %}
+DefaultDependencies=no
+
+[Service]
+Type=simple
+Environment="HOME={{ devture_systemd_docker_base_systemd_unit_home_path }}"
+ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} kill {{ netbox_identifier }} 2>/dev/null || true'
+ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ netbox_identifier }} 2>/dev/null || true'
+
+{#
+	If we try to start the container with a regular user, we get:
+	> ✅ Initialisation is done.
+	> ⏳ Waiting for control socket to be created... (1/10)
+	> 2023/03/26 07:15:17 [warn] 7#7 Unit is running unprivileged, then it cannot use arbitrary user and group.
+	> 2023/03/26 07:15:17 [alert] 7#7 Unable to create certificates storage directory: mkdir(/opt/unit/state/certs/) failed (30: Read-only file system)
+	> 2023/03/26 07:15:17 [alert] 7#7 bind(6, unix:/opt/unit/unit.sock.tmp) failed (30: Read-only file system)
+
+	This container must run as root, because it's:
+	- using unitd and trying to create and change to arbitrary users/groups
+	- trying to write to /opt/unit/state/certs and /opt/unit
+	- possibly other reasons
+
+	By using tmpfs for /opt/unit/state/certs and /opt/unit, we can at least keep --read-only around.
+
+	See: https://github.com/netbox-community/netbox-docker/blob/97ee353b00804d3acdb2f6e0e4a001145e66d09f/docker/launch-netbox.sh#L49-L57
+#}
+
+ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
+			--rm \
+			--name={{ netbox_identifier }} \
+			--log-driver=none \
+			--cap-drop=ALL \
+			--cap-add=SETUID \
+			--cap-add=SETGID \
+			--read-only \
+			--network={{ netbox_container_network }} \
+			{% if netbox_container_http_bind_port %}
+			-p {{ netbox_container_http_bind_port }}:8080 \
+			{% endif %}
+			--env-file={{ netbox_base_path }}/env \
+			--label-file={{ netbox_base_path }}/labels \
+			--tmpfs=/opt/unit/state/certs:rw,noexec,nosuid,size=100m \
+			--tmpfs=/opt/unit:rw,noexec,nosuid,size=100m \
+			--mount type=bind,src={{ netbox_reports_path }},dst=/etc/netbox/reports,ro \
+			--mount type=bind,src={{ netbox_scripts_path }},dst=/etc/netbox/scripts,ro \
+			--mount type=bind,src={{ netbox_media_path }},dst=/opt/netbox/netbox/media \
+			{% for volume in netbox_container_additional_volumes %}
+			--mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options else '' }} \
+			{% endfor %}
+			{% for arg in netbox_container_extra_arguments %}
+			{{ arg }} \
+			{% endfor %}
+			{{ netbox_container_image }}
+
+{% for network in netbox_container_additional_networks %}
+ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ netbox_identifier }}
+{% endfor %}
+
+ExecStart={{ devture_systemd_docker_base_host_command_docker }} start --attach {{ netbox_identifier }}
+
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} kill {{ netbox_identifier }} 2>/dev/null || true'
+ExecStop=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ netbox_identifier }} 2>/dev/null || true'
+
+Restart=always
+RestartSec=30
+SyslogIdentifier={{ netbox_identifier }}
+
+[Install]
+WantedBy=multi-user.target

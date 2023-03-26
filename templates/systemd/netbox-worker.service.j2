@@ -1,0 +1,16 @@
+#jinja2: lstrip_blocks: "True"
+[Unit]
+Description=NetBox worker ({{ netbox_identifier }})
+Requires={{ netbox_identifier }}.service
+After={{ netbox_identifier }}.service
+DefaultDependencies=no
+
+[Service]
+Type=simple
+ExecStart={{ devture_systemd_docker_base_host_command_docker }} exec {{ netbox_identifier }} /opt/netbox/netbox/manage.py rqworker
+Restart=always
+RestartSec=30
+SyslogIdentifier={{ netbox_identifier }}-worker
+
+[Install]
+WantedBy=multi-user.target

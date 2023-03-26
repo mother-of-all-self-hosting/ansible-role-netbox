@@ -1,0 +1,53 @@
+---
+
+- name: Ensure NetBox paths exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0750
+    owner: "{{ netbox_uid }}"
+    group: "{{ netbox_gid }}"
+  with_items:
+    - "{{ netbox_base_path }}"
+    - "{{ netbox_media_path }}"
+    - "{{ netbox_reports_path }}"
+    - "{{ netbox_scripts_path }}"
+
+- name: Ensure NetBox support files installed
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/{{ item }}.j2"
+    dest: "{{ netbox_base_path }}/{{ item }}"
+    mode: 0640
+    owner: "{{ netbox_uid }}"
+    group: "{{ netbox_gid }}"
+  with_items:
+    - env
+    - labels
+
+- name: Ensure NetBox container image is pulled
+  community.docker.docker_image:
+    name: "{{ netbox_container_image }}"
+    source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
+    force_source: "{{ netbox_container_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
+    force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else netbox_container_image_force_pull }}"
+  register: result
+  retries: "{{ devture_playbook_help_container_retries_count }}"
+  delay: "{{ devture_playbook_help_container_retries_delay }}"
+  until: result is not failed
+
+- name: Ensure NetBox container network is created
+  community.general.docker_network:
+    name: "{{ netbox_container_network }}"
+    driver: bridge
+
+- name: Ensure NetBox systemd services are present
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/systemd/{{ item.src }}"
+    dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ item.dst }}"
+  with_items:
+    - src: netbox.service.j2
+      dst: "{{ netbox_identifier }}.service"
+    - src: netbox-worker.service.j2
+      dst: "{{ netbox_identifier }}-worker.service"
+    - src: netbox-housekeeping.service.j2
+      dst: "{{ netbox_identifier }}-housekeeping.service"

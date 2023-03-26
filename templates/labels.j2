@@ -1,0 +1,64 @@
+{% if netbox_container_labels_traefik_enabled %}
+traefik.enable=true
+
+{% if netbox_container_labels_traefik_docker_network %}
+traefik.docker.network={{ netbox_container_labels_traefik_docker_network }}
+{% endif %}
+
+{% set middlewares = [] %}
+
+{% if netbox_container_labels_traefik_path_prefix != '/' %}
+traefik.http.middlewares.{{ netbox_identifier }}-slashless-redirect.redirectregex.regex=({{ netbox_container_labels_traefik_path_prefix | quote }})$
+traefik.http.middlewares.{{ netbox_identifier }}-slashless-redirect.redirectregex.replacement=${1}/
+{% set middlewares = middlewares + [netbox_identifier + '-slashless-redirect'] %}
+{% endif %}
+
+{#
+	Intentionally not adding a stripPrefix middleware.
+	NetBox seems to serve itself under the same prefix it sees in the BASE_PATH environment variable.
+
+	The only exception is request for static files in the Admin panel.
+	Requests for /PREFIX/static/ need to be stripped of the prefix.
+	Because the stripPrefix middleware blindly removes the whole prefix match,
+	and we need to go from /PREFIX/static/ to /static/, we can't use this middleware
+	and use replacePathRegex instead.
+#}
+
+{% if netbox_container_labels_traefik_path_prefix != '/' %}
+traefik.http.middlewares.{{ netbox_identifier }}-fix-up-path.replacepathregex.regex=^{{ netbox_container_labels_traefik_path_prefix }}/static/(.*)
+traefik.http.middlewares.{{ netbox_identifier }}-fix-up-path.replacepathregex.replacement=/static/${1}
+{% set middlewares = middlewares + [netbox_identifier + '-fix-up-path'] %}
+{% endif %}
+
+{% if netbox_container_labels_traefik_additional_request_headers.keys() | length > 0 %}
+{% for name, value in netbox_container_labels_traefik_additional_request_headers.items() %}
+traefik.http.middlewares.{{ netbox_identifier }}-add-request-headers.headers.customrequestheaders.{{ name }}={{ value }}
+{% endfor %}
+{% set middlewares = middlewares + [netbox_identifier + '-add-request-headers'] %}
+{% endif %}
+
+{% if netbox_container_labels_traefik_additional_response_headers.keys() | length > 0 %}
+{% for name, value in netbox_container_labels_traefik_additional_response_headers.items() %}
+traefik.http.middlewares.{{ netbox_identifier }}-add-response-headers.headers.customresponseheaders.{{ name }}={{ value }}
+{% endfor %}
+{% set middlewares = middlewares + [netbox_identifier + '-add-response-headers'] %}
+{% endif %}
+
+traefik.http.routers.{{ netbox_identifier }}.rule={{ netbox_container_labels_traefik_rule }}
+{% if netbox_container_labels_traefik_priority | int > 0 %}
+traefik.http.routers.{{ netbox_identifier }}.priority={{ netbox_container_labels_traefik_priority }}
+{% endif %}
+traefik.http.routers.{{ netbox_identifier }}.service={{ netbox_identifier }}
+{% if middlewares | length > 0 %}
+traefik.http.routers.{{ netbox_identifier }}.middlewares={{ middlewares | join(',') }}
+{% endif %}
+traefik.http.routers.{{ netbox_identifier }}.entrypoints={{ netbox_container_labels_traefik_entrypoints }}
+traefik.http.routers.{{ netbox_identifier }}.tls={{ netbox_container_labels_traefik_tls | to_json }}
+{% if netbox_container_labels_traefik_tls %}
+traefik.http.routers.{{ netbox_identifier }}.tls.certResolver={{ netbox_container_labels_traefik_tls_certResolver }}
+{% endif %}
+
+traefik.http.services.{{ netbox_identifier }}.loadbalancer.server.port=8080
+{% endif %}
+
+{{ netbox_container_labels_additional_labels }}
