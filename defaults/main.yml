@@ -20,6 +20,7 @@ netbox_hostname: ''
 netbox_path_prefix: /
 
 netbox_base_path: "/{{ netbox_identifier }}"
+netbox_config_path: "{{ netbox_base_path }}/config"
 netbox_media_path: "{{ netbox_base_path }}/media"
 netbox_reports_path: "{{ netbox_base_path }}/reports"
 netbox_scripts_path: "{{ netbox_base_path }}/scripts"
@@ -248,3 +249,15 @@ netbox_systemd_required_services_list: "{{ netbox_systemd_required_services_list
 netbox_systemd_required_services_list_default: ['docker.service']
 netbox_systemd_required_services_list_auto: []
 netbox_systemd_required_services_list_custom: []
+
+# Additional Python configuration that will be mounted into the container as an `extra.py` file.
+# See https://github.com/netbox-community/netbox-docker/blob/release/configuration/extra.py
+#
+# Example:
+# netbox_configuration_extra_python: |
+#   SOCIAL_AUTH_KEYCLOAK_KEY = 'netbox'
+#   SOCIAL_AUTH_KEYCLOAK_SECRET = ''
+#   SOCIAL_AUTH_KEYCLOAK_PUBLIC_KEY = ''
+#   SOCIAL_AUTH_KEYCLOAK_AUTHORIZATION_URL = ''
+#   SOCIAL_AUTH_KEYCLOAK_ACCESS_TOKEN_URL = ''
+netbox_configuration_extra_python: ''

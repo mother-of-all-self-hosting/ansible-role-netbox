@@ -50,6 +50,7 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
 			--tmpfs=/opt/unit:rw,noexec,nosuid,size=100m \
 			--tmpfs=/opt/unit/state:rw,noexec,nosuid,size=100m \
 			--tmpfs=/opt/unit/tmp:rw,noexec,nosuid,size=100m \
+			--mount type=bind,src={{ netbox_config_path }}/extra.py,dst=/etc/netbox/config/extra.py,ro \
 			--mount type=bind,src={{ netbox_reports_path }},dst=/etc/netbox/reports,ro \
 			--mount type=bind,src={{ netbox_scripts_path }},dst=/etc/netbox/scripts,ro \
 			--mount type=bind,src={{ netbox_media_path }},dst=/opt/netbox/netbox/media \

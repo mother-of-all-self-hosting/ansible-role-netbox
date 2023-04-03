@@ -10,6 +10,8 @@
   with_items:
     - path: "{{ netbox_base_path }}"
       mode: 750
+    - path: "{{ netbox_config_path }}"
+      mode: 750
     # Media is written by the `unit` user in the container,
     # so we're using more lax permissions for this path.
     - path: "{{ netbox_media_path }}"
@@ -21,14 +23,21 @@
 
 - name: Ensure NetBox support files installed
   ansible.builtin.template:
-    src: "{{ role_path }}/templates/{{ item }}.j2"
-    dest: "{{ netbox_base_path }}/{{ item }}"
-    mode: 0640
+    src: "{{ item.src }}"
+    dest: "{{ item.dst }}"
+    mode: "{{ item.mode }}"
     owner: "{{ netbox_uid }}"
     group: "{{ netbox_gid }}"
   with_items:
-    - env
-    - labels
+    - src: "{{ role_path }}/templates/env.j2"
+      dst: "{{ netbox_base_path }}/env"
+      mode: 640
+    - src: "{{ role_path }}/templates/labels.j2"
+      dst: "{{ netbox_base_path }}/labels"
+      mode: 640
+    - src: "{{ role_path }}/templates/config/extra.py.j2"
+      dst: "{{ netbox_config_path }}/extra.py"
+      mode: 444
 
 - name: Ensure NetBox container image is pulled
   community.docker.docker_image:
