@@ -29,6 +29,8 @@ ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_s
 	By using tmpfs for /opt/unit/state/certs and /opt/unit, we can at least keep --read-only around.
 
 	See: https://github.com/netbox-community/netbox-docker/blob/97ee353b00804d3acdb2f6e0e4a001145e66d09f/docker/launch-netbox.sh#L49-L57
+
+	We mount /opt/unit/tmp as well, because temporary files (during image/media uploads) need to be stored there.
 #}
 
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
@@ -45,8 +47,9 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
 			{% endif %}
 			--env-file={{ netbox_base_path }}/env \
 			--label-file={{ netbox_base_path }}/labels \
-			--tmpfs=/opt/unit/state/certs:rw,noexec,nosuid,size=100m \
 			--tmpfs=/opt/unit:rw,noexec,nosuid,size=100m \
+			--tmpfs=/opt/unit/state:rw,noexec,nosuid,size=100m \
+			--tmpfs=/opt/unit/tmp:rw,noexec,nosuid,size=100m \
 			--mount type=bind,src={{ netbox_reports_path }},dst=/etc/netbox/reports,ro \
 			--mount type=bind,src={{ netbox_scripts_path }},dst=/etc/netbox/scripts,ro \
 			--mount type=bind,src={{ netbox_media_path }},dst=/opt/netbox/netbox/media \

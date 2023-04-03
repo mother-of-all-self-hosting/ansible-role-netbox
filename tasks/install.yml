@@ -2,16 +2,22 @@
 
 - name: Ensure NetBox paths exist
   ansible.builtin.file:
-    path: "{{ item }}"
+    path: "{{ item.path }}"
     state: directory
-    mode: 0750
+    mode: "{{ item.mode }}"
     owner: "{{ netbox_uid }}"
     group: "{{ netbox_gid }}"
   with_items:
-    - "{{ netbox_base_path }}"
-    - "{{ netbox_media_path }}"
-    - "{{ netbox_reports_path }}"
-    - "{{ netbox_scripts_path }}"
+    - path: "{{ netbox_base_path }}"
+      mode: 750
+    # Media is written by the `unit` user in the container,
+    # so we're using more lax permissions for this path.
+    - path: "{{ netbox_media_path }}"
+      mode: 777
+    - path: "{{ netbox_reports_path }}"
+      mode: 750
+    - path: "{{ netbox_scripts_path }}"
+      mode: 750
 
 - name: Ensure NetBox support files installed
   ansible.builtin.template:
