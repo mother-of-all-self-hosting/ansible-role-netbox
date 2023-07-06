@@ -1,0 +1,16 @@
+FROM {{ netbox_container_image }}
+
+RUN apt update && apt install -y wget
+
+{% if netbox_container_image_customizations_keycloak_sso_expiration_middleware_enabled %}
+RUN wget \
+	{{ netbox_container_image_customizations_keycloak_sso_expiration_middleware_download_url }} \
+	-O {{ netbox_container_image_python_site_packages_path }}/keycloak_sso_expiration_middleware.py
+
+RUN sed \
+	--in-place \
+	"s/'netbox.middleware.RemoteUserMiddleware',/'netbox.middleware.RemoteUserMiddleware',\n    'keycloak_sso_expiration_middleware.KeycloakSSOExpirationMiddleware',/" \
+	/opt/netbox/netbox/netbox/settings.py
+{% endif %}
+
+{{ netbox_container_image_customizations_dockerfile_body_custom }}

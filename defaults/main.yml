@@ -24,11 +24,52 @@ netbox_config_path: "{{ netbox_base_path }}/config"
 netbox_media_path: "{{ netbox_base_path }}/media"
 netbox_reports_path: "{{ netbox_base_path }}/reports"
 netbox_scripts_path: "{{ netbox_base_path }}/scripts"
+netbox_customized_container_src_path: "{{ netbox_base_path }}/customized-container-src"
+
+# Specifies the Python site-packages path in the container.
+netbox_container_image_python_site_packages_path: /opt/netbox/venv/lib/python3.10/site-packages
+
+# netbox_container_image_customizations_enabled controls whether a customized NetBox image will be built.
+#
+# Feel free to toggle this to `true` yourself and specify build steps in `netbox_container_image_customizations_dockerfile_body_custom`
+# or by enabling another variable.
+#
+# See:
+# - `./templates/customizations/Dockerfile.j2`
+# - `netbox_container_image_customizations_dockerfile_body_custom`
+# - `netbox_container_image_customized`
+# - `netbox_container_image_final`
+netbox_container_image_customizations_enabled: false
+
+# netbox_container_image_customizations_dockerfile_body_custom contains your custom Dockerfile steps
+# for building your customized NetBox image based on the original (upstream) image (`netbox_container_image`).
+# A `FROM ...` clause is included automatically so you don't have to.
+#
+# Example:
+# netbox_container_image_customizations_dockerfile_body_custom: |
+#  RUN echo 'This is a custom step for building the customized container image for NetBox.'
+#  RUN echo 'You can override netbox_container_image_customizations_dockerfile_body_custom to add your own steps.'
+#  RUN echo 'You do NOT need to include a FROM clause yourself.'
+netbox_container_image_customizations_dockerfile_body_custom: ''
+
+# Controls whether to install https://github.com/devture/netbox-keycloak-sso-expiration-middleware
+# To enable it, flip this variable and also `netbox_container_image_customizations_enabled` to true.
+netbox_container_image_customizations_keycloak_sso_expiration_middleware_enabled: false
+netbox_container_image_customizations_keycloak_sso_expiration_middleware_version: cff7fc4e08d4b1a64da192c652300de283f045c0
+netbox_container_image_customizations_keycloak_sso_expiration_middleware_download_url: "https://raw.githubusercontent.com/devture/netbox-keycloak-sso-expiration-middleware/{{ netbox_container_image_customizations_keycloak_sso_expiration_middleware_version }}/keycloak_sso_expiration_middleware.py"
 
 netbox_container_image: "{{ netbox_container_image_registry_prefix }}netboxcommunity/netbox:{{ netbox_container_image_tag }}"
 netbox_container_image_registry_prefix: docker.io/
 netbox_container_image_tag: "{{ netbox_version }}"
 netbox_container_image_force_pull: "{{ netbox_container_image.endswith(':latest') }}"
+
+# netbox_container_image_customized is the name of the locally built NetBox image
+# which adds various customizations on top of the original (upstream) NetBox image.
+# This image will be based on the upstream `netbox_container_image` image, only if `netbox_container_image_customizations_enabled: true`.
+netbox_container_image_customized: "localhost/netbox:{{ netbox_container_image_tag }}-customized"
+
+# netbox_container_image_final holds the name of the NetBox image to run depending on whether or not customizations are enabled.
+netbox_container_image_final: "{{ netbox_container_image_customized if netbox_container_image_customizations_enabled else netbox_container_image }} "
 
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 netbox_container_network: "{{ netbox_identifier }}"

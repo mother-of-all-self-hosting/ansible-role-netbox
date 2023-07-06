@@ -60,7 +60,7 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
 			{% for arg in netbox_container_extra_arguments %}
 			{{ arg }} \
 			{% endfor %}
-			{{ netbox_container_image }}
+			{{ netbox_container_image_final }}
 
 {% for network in netbox_container_additional_networks %}
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ netbox_identifier }}

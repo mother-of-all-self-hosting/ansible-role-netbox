@@ -10,16 +10,25 @@
   with_items:
     - path: "{{ netbox_base_path }}"
       mode: 750
+      when: true
     - path: "{{ netbox_config_path }}"
       mode: 750
+      when: true
     # Media is written by the `unit` user in the container,
     # so we're using more lax permissions for this path.
     - path: "{{ netbox_media_path }}"
       mode: 777
+      when: true
     - path: "{{ netbox_reports_path }}"
       mode: 750
+      when: true
     - path: "{{ netbox_scripts_path }}"
       mode: 750
+      when: true
+    - path: "{{ netbox_customized_container_src_path }}"
+      mode: 750
+      when: "{{ netbox_container_image_customizations_enabled }}"
+  when: item.when | bool
 
 - name: Ensure NetBox support files installed
   ansible.builtin.template:
@@ -49,6 +58,27 @@
   retries: "{{ devture_playbook_help_container_retries_count }}"
   delay: "{{ devture_playbook_help_container_retries_delay }}"
   until: result is not failed
+
+- when: "netbox_container_image_customizations_enabled | bool"
+  block:
+    - name: Ensure customizations Dockerfile is created
+      ansible.builtin.template:
+        src: "{{ role_path }}/templates/customizations/Dockerfile.j2"
+        dest: "{{ netbox_customized_container_src_path }}/Dockerfile"
+        owner: "{{ netbox_uid }}"
+        group: "{{ netbox_gid }}"
+        mode: 0640
+      register: netbox_container_image_customizations_dockerfile_result
+
+    - name: Ensure customized container image for NetBox is built
+      community.docker.docker_image:
+        name: "{{ netbox_container_image_customized }}"
+        source: build
+        force_source: "{{ netbox_container_image_customizations_dockerfile_result.changed }}"
+        build:
+          dockerfile: Dockerfile
+          path: "{{ netbox_customized_container_src_path }}"
+          pull: true
 
 - name: Ensure NetBox container network is created
   community.general.docker_network:
