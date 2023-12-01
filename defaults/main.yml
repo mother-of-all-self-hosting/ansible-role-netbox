@@ -27,7 +27,7 @@ netbox_scripts_path: "{{ netbox_base_path }}/scripts"
 netbox_customized_container_src_path: "{{ netbox_base_path }}/customized-container-src"
 
 # Specifies the Python site-packages path in the container.
-netbox_container_image_python_site_packages_path: /opt/netbox/venv/lib/python3.10/site-packages
+netbox_container_image_python_site_packages_path: /opt/netbox/venv/lib/python3.11/site-packages
 
 # netbox_container_image_customizations_enabled controls whether a customized NetBox image will be built.
 #
