@@ -55,7 +55,7 @@ netbox_container_image_customizations_dockerfile_body_custom: ''
 # Controls whether to install https://github.com/devture/netbox-keycloak-sso-expiration-middleware
 # To enable it, flip this variable and also `netbox_container_image_customizations_enabled` to true.
 netbox_container_image_customizations_keycloak_sso_expiration_middleware_enabled: false
-netbox_container_image_customizations_keycloak_sso_expiration_middleware_version: cff7fc4e08d4b1a64da192c652300de283f045c0
+netbox_container_image_customizations_keycloak_sso_expiration_middleware_version: 2f46d31183aa68adacae1dfe11f25e2c77f1779e
 netbox_container_image_customizations_keycloak_sso_expiration_middleware_download_url: "https://raw.githubusercontent.com/devture/netbox-keycloak-sso-expiration-middleware/{{ netbox_container_image_customizations_keycloak_sso_expiration_middleware_version }}/keycloak_sso_expiration_middleware.py"
 
 netbox_container_image: "{{ netbox_container_image_registry_prefix }}netboxcommunity/netbox:{{ netbox_container_image_tag }}"
