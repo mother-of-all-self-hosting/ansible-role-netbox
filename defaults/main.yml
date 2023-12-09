@@ -10,7 +10,7 @@ netbox_identifier: netbox
 netbox_uid: ''
 netbox_gid: ''
 
-netbox_version: v3.6.0-2.7.0
+netbox_version: v3.6.6-2.7.0
 
 # The hostname at which netbox is served.
 netbox_hostname: ''
