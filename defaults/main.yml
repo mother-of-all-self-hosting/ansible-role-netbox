@@ -17,6 +17,7 @@ netbox_reports_path: "{{ netbox_base_path }}/reports"
 netbox_scripts_path: "{{ netbox_base_path }}/scripts"
 netbox_customized_container_src_path: "{{ netbox_base_path }}/customized-container-src"
 
+# renovate: datasource=docker depName=netboxcommunity/netbox versioning=semver
 netbox_version: v3.7.0-2.8.0
 
 netbox_uid: ''
