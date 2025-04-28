@@ -10,11 +10,17 @@
 netbox_enabled: true
 
 netbox_identifier: netbox
+netbox_base_path: "/{{ netbox_identifier }}"
+netbox_config_path: "{{ netbox_base_path }}/config"
+netbox_media_path: "{{ netbox_base_path }}/media"
+netbox_reports_path: "{{ netbox_base_path }}/reports"
+netbox_scripts_path: "{{ netbox_base_path }}/scripts"
+netbox_customized_container_src_path: "{{ netbox_base_path }}/customized-container-src"
+
+netbox_version: v3.7.0-2.8.0
 
 netbox_uid: ''
 netbox_gid: ''
-
-netbox_version: v3.7.0-2.8.0
 
 # The hostname at which netbox is served.
 netbox_hostname: ''
@@ -22,13 +28,6 @@ netbox_hostname: ''
 # The path at which netbox is served.
 # This value must either be `/` or not end with a slash (e.g. `/netbox`).
 netbox_path_prefix: /
-
-netbox_base_path: "/{{ netbox_identifier }}"
-netbox_config_path: "{{ netbox_base_path }}/config"
-netbox_media_path: "{{ netbox_base_path }}/media"
-netbox_reports_path: "{{ netbox_base_path }}/reports"
-netbox_scripts_path: "{{ netbox_base_path }}/scripts"
-netbox_customized_container_src_path: "{{ netbox_base_path }}/customized-container-src"
 
 # Specifies the Python site-packages path in the container.
 netbox_container_image_python_site_packages_path: /opt/netbox/venv/lib/python3.11/site-packages
@@ -75,6 +74,11 @@ netbox_container_image_customized: "localhost/netbox:{{ netbox_container_image_t
 # netbox_container_image_final holds the name of the NetBox image to run depending on whether or not customizations are enabled.
 netbox_container_image_final: "{{ netbox_container_image_customized if netbox_container_image_customizations_enabled else netbox_container_image }} "
 
+# Specifies how the container publishes its HTTP port
+#
+# Takes an "<ip>:<port>" value (e.g. "127.0.0.1:8000"), just a port number or an empty string to not expose.
+netbox_container_http_bind_port: ''
+
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 netbox_container_network: "{{ netbox_identifier }}"
 
@@ -85,10 +89,12 @@ netbox_container_additional_networks: "{{ netbox_container_additional_networks_a
 netbox_container_additional_networks_auto: []
 netbox_container_additional_networks_custom: []
 
-# Specifies how the container publishes its HTTP port
-#
-# Takes an "<ip>:<port>" value (e.g. "127.0.0.1:8000"), just a port number or an empty string to not expose.
-netbox_container_http_bind_port: ''
+# A list of additional "volumes" to mount in the container.
+# This list gets populated dynamically at runtime. You can provide a different default value,
+# if you wish to mount your own files into the container.
+# Contains definition objects like this: `{"type": "bind", "src": "/outside", "dst": "/inside", "options": "readonly"}.
+# See the `--mount` documentation for the `docker run` command.
+netbox_container_additional_volumes: []
 
 # netbox_container_labels_traefik_enabled controls whether labels to assist a Traefik reverse-proxy will be attached to the container.
 # See `../templates/labels.j2` for details.
@@ -135,15 +141,65 @@ netbox_container_labels_traefik_additional_response_headers_custom: {}
 #   another.label="here"
 netbox_container_labels_additional_labels: ''
 
-# A list of additional "volumes" to mount in the container.
-# This list gets populated dynamically at runtime. You can provide a different default value,
-# if you wish to mount your own files into the container.
-# Contains definition objects like this: `{"type": "bind", "src": "/outside", "dst": "/inside", "options": "readonly"}.
-# See the `--mount` documentation for the `docker run` command.
-netbox_container_additional_volumes: []
-
 # A list of extra arguments to pass to the container
 netbox_container_extra_arguments: []
+
+# Specifies the value of the `X-XSS-Protection` header
+# Stops pages from loading when they detect reflected cross-site scripting (XSS) attacks.
+#
+# Learn more about it is here:
+# - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection
+# - https://portswigger.net/web-security/cross-site-scripting/reflected
+netbox_http_header_xss_protection: "1; mode=block"
+
+# Specifies the value of the `X-Frame-Options` header which controls whether framing can happen.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+netbox_http_header_frame_options: SAMEORIGIN
+
+# Specifies the value of the `X-Content-Type-Options` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
+netbox_http_header_content_type_options: nosniff
+
+# Specifies the value of the `Content-Security-Policy` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
+netbox_http_header_content_security_policy: frame-ancestors 'self'
+
+# Specifies the value of the `Permission-Policy` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permission-Policy
+netbox_http_header_content_permission_policy: "{{ 'interest-cohort=()' if netbox_floc_optout_enabled else '' }}"
+
+# Specifies the value of the `Strict-Transport-Security` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+netbox_http_header_strict_transport_security: "max-age=31536000; includeSubDomains{{ '; preload' if netbox_hsts_preload_enabled else '' }}"
+
+# Controls whether to send a "Permissions-Policy interest-cohort=();" header along with all responses
+#
+# Learn more about what it is here:
+# - https://www.eff.org/deeplinks/2021/03/googles-floc-terrible-idea
+# - https://paramdeo.com/blog/opting-your-website-out-of-googles-floc-network
+# - https://amifloced.org/
+#
+# Of course, a better solution is to just stop using browsers (like Chrome), which participate in such tracking practices.
+# See: `netbox_content_permission_policy`
+netbox_floc_optout_enabled: true
+
+# Controls if HSTS preloading is enabled
+#
+# In its strongest and recommended form, the [HSTS policy](https://www.chromium.org/hsts) includes all subdomains, and
+# indicates a willingness to be "preloaded" into browsers:
+# `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+# For more information visit:
+# - https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security
+# - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+# - https://hstspreload.org/#opt-in
+# See: `netbox_http_header_strict_transport_security`
+netbox_hsts_preload_enabled: false
+
+# List of systemd services that netbox.service depends on
+netbox_systemd_required_services_list: "{{ netbox_systemd_required_services_list_default + netbox_systemd_required_services_list_auto + netbox_systemd_required_services_list_custom }}"
+netbox_systemd_required_services_list_default: ['docker.service']
+netbox_systemd_required_services_list_auto: []
+netbox_systemd_required_services_list_custom: []
 
 netbox_database_hostname: ''
 netbox_database_port: 5432
@@ -237,63 +293,6 @@ netbox_environment_variable_skip_superuser: "{{ netbox_environment_variable_supe
 
 # Additional environment variables.
 netbox_environment_variables_additional_variables: ''
-
-# Specifies the value of the `X-XSS-Protection` header
-# Stops pages from loading when they detect reflected cross-site scripting (XSS) attacks.
-#
-# Learn more about it is here:
-# - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection
-# - https://portswigger.net/web-security/cross-site-scripting/reflected
-netbox_http_header_xss_protection: "1; mode=block"
-
-# Specifies the value of the `X-Frame-Options` header which controls whether framing can happen.
-# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
-netbox_http_header_frame_options: SAMEORIGIN
-
-# Specifies the value of the `X-Content-Type-Options` header.
-# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
-netbox_http_header_content_type_options: nosniff
-
-# Specifies the value of the `Content-Security-Policy` header.
-# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
-netbox_http_header_content_security_policy: frame-ancestors 'self'
-
-# Specifies the value of the `Permission-Policy` header.
-# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permission-Policy
-netbox_http_header_content_permission_policy: "{{ 'interest-cohort=()' if netbox_floc_optout_enabled else '' }}"
-
-# Specifies the value of the `Strict-Transport-Security` header.
-# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
-netbox_http_header_strict_transport_security: "max-age=31536000; includeSubDomains{{ '; preload' if netbox_hsts_preload_enabled else '' }}"
-
-# Controls whether to send a "Permissions-Policy interest-cohort=();" header along with all responses
-#
-# Learn more about what it is here:
-# - https://www.eff.org/deeplinks/2021/03/googles-floc-terrible-idea
-# - https://paramdeo.com/blog/opting-your-website-out-of-googles-floc-network
-# - https://amifloced.org/
-#
-# Of course, a better solution is to just stop using browsers (like Chrome), which participate in such tracking practices.
-# See: `netbox_content_permission_policy`
-netbox_floc_optout_enabled: true
-
-# Controls if HSTS preloading is enabled
-#
-# In its strongest and recommended form, the [HSTS policy](https://www.chromium.org/hsts) includes all subdomains, and
-# indicates a willingness to be "preloaded" into browsers:
-# `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
-# For more information visit:
-# - https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security
-# - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
-# - https://hstspreload.org/#opt-in
-# See: `netbox_http_header_strict_transport_security`
-netbox_hsts_preload_enabled: false
-
-# List of systemd services that netbox.service depends on
-netbox_systemd_required_services_list: "{{ netbox_systemd_required_services_list_default + netbox_systemd_required_services_list_auto + netbox_systemd_required_services_list_custom }}"
-netbox_systemd_required_services_list_default: ['docker.service']
-netbox_systemd_required_services_list_auto: []
-netbox_systemd_required_services_list_custom: []
 
 # Additional Python configuration that will be mounted into the container as an `extra.py` file.
 # See https://github.com/netbox-community/netbox-docker/blob/release/configuration/extra.py
