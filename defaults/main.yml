@@ -190,11 +190,14 @@ netbox_floc_optout_enabled: true
 # See: `netbox_http_header_strict_transport_security`
 netbox_hsts_preload_enabled: false
 
-# List of systemd services that netbox.service depends on
+# List of systemd services that the NetBox systemd service depends on
 netbox_systemd_required_services_list: "{{ netbox_systemd_required_services_list_default + netbox_systemd_required_services_list_auto + netbox_systemd_required_services_list_custom }}"
 netbox_systemd_required_services_list_default: ['docker.service']
 netbox_systemd_required_services_list_auto: []
 netbox_systemd_required_services_list_custom: []
+
+# List of systemd services that the NetBox systemd service wants
+netbox_systemd_wanted_services_list: []
 
 netbox_database_hostname: ''
 netbox_database_port: 5432
