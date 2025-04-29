@@ -1,7 +1,10 @@
-# SPDX-FileCopyrightText: 2023 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2023 - 2024 Nikita Chernyi
+# SPDX-FileCopyrightText: 2023 - 2025 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2024 Sergio Durigan Junior
+# SPDX-FileCopyrightText: 2025 MASH project contributors
+# SPDX-FileCopyrightText: 2025 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
-
 ---
 
 # Project source code URL: https://github.com/netbox-community/netbox-docker/
@@ -63,8 +66,10 @@ netbox_container_image_customizations_keycloak_sso_expiration_middleware_version
 netbox_container_image_customizations_keycloak_sso_expiration_middleware_download_url: "https://raw.githubusercontent.com/devture/netbox-keycloak-sso-expiration-middleware/{{ netbox_container_image_customizations_keycloak_sso_expiration_middleware_version }}/keycloak_sso_expiration_middleware.py"
 
 netbox_container_image: "{{ netbox_container_image_registry_prefix }}netboxcommunity/netbox:{{ netbox_container_image_tag }}"
-netbox_container_image_registry_prefix: docker.io/
 netbox_container_image_tag: "{{ netbox_version }}"
+netbox_container_image_registry_prefix: "{{ netbox_container_image_registry_prefix_upstream }}"
+netbox_container_image_registry_prefix_upstream: "{{ netbox_container_image_registry_prefix_upstream_default }}"
+netbox_container_image_registry_prefix_upstream_default: docker.io/
 netbox_container_image_force_pull: "{{ netbox_container_image.endswith(':latest') }}"
 
 # netbox_container_image_customized is the name of the locally built NetBox image
