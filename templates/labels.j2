@@ -64,7 +64,7 @@ traefik.http.routers.{{ netbox_identifier }}.tls={{ netbox_container_labels_trae
 traefik.http.routers.{{ netbox_identifier }}.tls.certResolver={{ netbox_container_labels_traefik_tls_certResolver }}
 {% endif %}
 
-traefik.http.services.{{ netbox_identifier }}.loadbalancer.server.port=8080
+traefik.http.services.{{ netbox_identifier }}.loadbalancer.server.port={{ netbox_container_http_port }}
 {% endif %}
 
 {{ netbox_container_labels_additional_labels }}
