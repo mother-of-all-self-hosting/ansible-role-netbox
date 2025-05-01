@@ -56,9 +56,6 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       {% endif %}
       --env-file={{ netbox_base_path }}/env \
       --label-file={{ netbox_base_path }}/labels \
-      --tmpfs=/opt/unit:rw,noexec,nosuid,size=100m \
-      --tmpfs=/opt/unit/state:rw,noexec,nosuid,size=100m \
-      --tmpfs=/opt/unit/tmp:rw,noexec,nosuid,size=100m \
       --mount type=bind,src={{ netbox_config_path }}/extra.py,dst=/etc/netbox/config/extra.py,ro \
       --mount type=bind,src={{ netbox_reports_path }},dst=/etc/netbox/reports,ro \
       --mount type=bind,src={{ netbox_scripts_path }},dst=/etc/netbox/scripts,ro \
@@ -66,6 +63,9 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       {% for volume in netbox_container_additional_volumes %}
       --mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options else '' }} \
       {% endfor %}
+      --tmpfs=/opt/unit:rw,noexec,nosuid,size=100m \
+      --tmpfs=/opt/unit/state:rw,noexec,nosuid,size=100m \
+      --tmpfs=/opt/unit/tmp:rw,noexec,nosuid,size=100m \
       {% for arg in netbox_container_extra_arguments %}
       {{ arg }} \
       {% endfor %}
