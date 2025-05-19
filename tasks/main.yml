@@ -4,11 +4,14 @@
 
 ---
 
-- block:
-    - when: netbox_enabled | bool
+- name: Perform NetBox installation tasks
+  block:
+    - name: Validate NetBox configuration
+      when: netbox_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
 
-    - when: netbox_enabled | bool
+    - name: Install NetBox
+      when: netbox_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
   tags:
     - setup-all
@@ -16,8 +19,10 @@
     - install-all
     - install-netbox
 
-- block:
-    - when: not netbox_enabled | bool
+- name: Perform NetBox uninstallation tasks
+  block:
+    - name: Uninstall NetBox
+      when: not netbox_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
   tags:
     - setup-all
