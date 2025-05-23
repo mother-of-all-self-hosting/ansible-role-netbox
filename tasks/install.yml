@@ -95,6 +95,7 @@
   ansible.builtin.template:
     src: "{{ role_path }}/templates/systemd/{{ item.src }}"
     dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ item.dst }}"
+    mode: 0644
   with_items:
     - src: netbox.service.j2
       dst: "{{ netbox_identifier }}.service"
