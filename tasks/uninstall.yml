@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-
 - name: Check existence of NetBox systemd service
   ansible.builtin.stat:
     path: "{{ devture_systemd_docker_base_systemd_path }}/{{ netbox_identifier }}.service"
   register: netbox_service_stat
 
-- when: netbox_service_stat.stat.exists | bool
+- name: Uninstall netbox systemd services and files
+  when: netbox_service_stat.stat.exists | bool
   block:
     - name: Ensure NetBox systemd services are stopped
       ansible.builtin.service:

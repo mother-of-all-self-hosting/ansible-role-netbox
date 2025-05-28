@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-
 - name: Fail if required NetBox settings not defined
   ansible.builtin.fail:
     msg: >
@@ -35,7 +34,8 @@
       must contain a username and not a full name with spaces, etc.
   when: "' ' in netbox_environment_variable_superuser_name"
 
-- when: netbox_container_labels_traefik_enabled | bool
+- name: Run if Traefik is enabled
+  when: netbox_container_labels_traefik_enabled | bool
   block:
     - name: Fail if required NetBox Traefik settings not defined
       ansible.builtin.fail:
