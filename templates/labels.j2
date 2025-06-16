@@ -20,14 +20,14 @@ traefik.http.middlewares.{{ netbox_identifier }}-slashless-redirect.redirectrege
 {% endif %}
 
 {#
-	Intentionally not adding a stripPrefix middleware.
-	NetBox seems to serve itself under the same prefix it sees in the BASE_PATH environment variable.
+  Intentionally not adding a stripPrefix middleware.
+  NetBox seems to serve itself under the same prefix it sees in the BASE_PATH environment variable.
 
-	The only exception is request for static files in the Admin panel.
-	Requests for /PREFIX/static/ need to be stripped of the prefix.
-	Because the stripPrefix middleware blindly removes the whole prefix match,
-	and we need to go from /PREFIX/static/ to /static/, we can't use this middleware
-	and use replacePathRegex instead.
+  The only exception is request for static files in the Admin panel.
+  Requests for /PREFIX/static/ need to be stripped of the prefix.
+  Because the stripPrefix middleware blindly removes the whole prefix match,
+  and we need to go from /PREFIX/static/ to /static/, we can't use this middleware
+  and use replacePathRegex instead.
 #}
 
 {% if netbox_container_labels_traefik_path_prefix != '/' %}
