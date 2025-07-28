@@ -121,7 +121,7 @@ netbox_container_labels_traefik_tls: "{{ netbox_container_labels_traefik_entrypo
 netbox_container_labels_traefik_tls_certResolver: default  # noqa var-naming
 
 # Controls which additional headers to attach to all HTTP requests.
-# To add your own custom request headers, use `netbox_container_labels_traefik_additional_response_headers_custom`
+# To add your own custom request headers, use `netbox_container_labels_traefik_additional_request_headers_custom`
 netbox_container_labels_traefik_additional_request_headers: "{{ netbox_container_labels_traefik_additional_request_headers_auto | combine(netbox_container_labels_traefik_additional_request_headers_custom) }}"
 netbox_container_labels_traefik_additional_request_headers_auto: {}
 netbox_container_labels_traefik_additional_request_headers_custom: {}
