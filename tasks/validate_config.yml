@@ -31,7 +31,7 @@
     - netbox_database_password
 
     - netbox_environment_variable_redis_hostname
-    - netbox_environment_variable_redis_cache_host
+    - netbox_environment_variable_redis_cache_hostname
 
     - netbox_environment_variable_secret_key
 
