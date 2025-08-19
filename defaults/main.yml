@@ -243,7 +243,7 @@ netbox_environment_variable_housekeeping_interval: 86400
 # Controls the `REDIS_DATABASE` environment variable
 netbox_environment_variable_redis_database: 0
 # Controls the `REDIS_HOST` environment variable
-netbox_environment_variable_redis_host: ''
+netbox_environment_variable_redis_hostname: ''
 # Controls the `REDIS_PORT` environment variable
 netbox_environment_variable_redis_port: 6379
 # Controls the `REDIS_INSECURE_SKIP_TLS_VERIFY` environment variable

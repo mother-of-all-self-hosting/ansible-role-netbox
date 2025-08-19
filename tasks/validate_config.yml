@@ -3,6 +3,15 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
+- name: (Deprecation) Catch and report renamed settings
+  ansible.builtin.fail:
+    msg: >-
+      Your configuration contains a variable, which now has a different name.
+      Please change your configuration to rename the variable (`{{ item.old }}` -> `{{ item.new }}`).
+  when: "lookup('ansible.builtin.varnames', ('^' + item.old + '$'), wantlist=True) | length > 0"
+  with_items:
+    - { "old": "netbox_environment_variable_redis_host", "new": "netbox_environment_variable_redis_hostname" }
+
 - name: Fail if required NetBox settings not defined
   ansible.builtin.fail:
     msg: >-
@@ -21,7 +30,7 @@
     - netbox_database_username
     - netbox_database_password
 
-    - netbox_environment_variable_redis_host
+    - netbox_environment_variable_redis_hostname
     - netbox_environment_variable_redis_cache_host
 
     - netbox_environment_variable_secret_key
