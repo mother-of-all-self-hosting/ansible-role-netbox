@@ -208,7 +208,10 @@ netbox_systemd_required_services_list_auto: []
 netbox_systemd_required_services_list_custom: []
 
 # List of systemd services that the NetBox systemd service wants
-netbox_systemd_wanted_services_list: []
+netbox_systemd_wanted_services_list: "{{ netbox_systemd_wanted_services_list_default + netbox_systemd_wanted_services_list_auto + netbox_systemd_wanted_services_list_custom }}"
+netbox_systemd_wanted_services_list_default: []
+netbox_systemd_wanted_services_list_auto: []
+netbox_systemd_wanted_services_list_custom: []
 
 netbox_database_hostname: ''
 netbox_database_port: 5432
