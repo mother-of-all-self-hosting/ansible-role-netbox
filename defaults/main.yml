@@ -219,6 +219,9 @@ netbox_database_name: netbox
 netbox_database_username: netbox
 netbox_database_password: ''
 
+# Specify the timezone
+netbox_environment_variables_tz: UTC
+
 # Controls the `SECRET_KEY` environment variable
 # Generating a strong key (e.g. `pwgen -s 64 1`) is recommended
 netbox_environment_variable_secret_key: ''
