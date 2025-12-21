@@ -23,11 +23,11 @@ netbox_customized_container_src_path: "{{ netbox_base_path }}/customized-contain
 # renovate: datasource=docker depName=netboxcommunity/netbox versioning=semver
 netbox_version: v3.7.0-2.8.0
 
-netbox_uid: ''
-netbox_gid: ''
+netbox_uid: ""
+netbox_gid: ""
 
 # The hostname at which NetBox is served.
-netbox_hostname: ''
+netbox_hostname: ""
 
 # The path at which NetBox is served.
 # This value must either be `/` or not end with a slash (e.g. `/netbox`).
@@ -57,7 +57,7 @@ netbox_container_image_customizations_enabled: false
 #  RUN echo 'This is a custom step for building the customized container image for NetBox.'
 #  RUN echo 'You can override netbox_container_image_customizations_dockerfile_body_custom to add your own steps.'
 #  RUN echo 'You do NOT need to include a FROM clause yourself.'
-netbox_container_image_customizations_dockerfile_body_custom: ''
+netbox_container_image_customizations_dockerfile_body_custom: ""
 
 # Controls whether to install https://github.com/devture/netbox-keycloak-sso-expiration-middleware
 # To enable it, flip this variable and also `netbox_container_image_customizations_enabled` to true.
@@ -83,7 +83,7 @@ netbox_container_image_final: "{{ netbox_container_image_customized if netbox_co
 # Specifies how the container publishes its HTTP port
 #
 # Takes an "<ip>:<port>" value (e.g. "127.0.0.1:8000"), just a port number or an empty string to not expose.
-netbox_container_http_bind_port: ''
+netbox_container_http_bind_port: ""
 
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 netbox_container_network: "{{ netbox_identifier }}"
@@ -218,18 +218,18 @@ netbox_systemd_wanted_services_list_default: []
 netbox_systemd_wanted_services_list_auto: []
 netbox_systemd_wanted_services_list_custom: []
 
-netbox_database_hostname: ''
+netbox_database_hostname: ""
 netbox_database_port: 5432
 netbox_database_name: netbox
 netbox_database_username: netbox
-netbox_database_password: ''
+netbox_database_password: ""
 
 # Specify the timezone
 netbox_environment_variables_tz: UTC
 
 # Controls the `SECRET_KEY` environment variable
 # Generating a strong key (e.g. `pwgen -s 64 1`) is recommended
-netbox_environment_variable_secret_key: ''
+netbox_environment_variable_secret_key: ""
 
 # Controls the `BASE_PATH` environment variable.
 # For Netbox installed at https://example.com/netbox/, we need to set this to 'netbox/'.
@@ -254,52 +254,52 @@ netbox_environment_variable_housekeeping_interval: 86400
 # Controls the `REDIS_DATABASE` environment variable
 netbox_environment_variable_redis_database: 0
 # Controls the `REDIS_HOST` environment variable
-netbox_environment_variable_redis_hostname: ''
+netbox_environment_variable_redis_hostname: ""
 # Controls the `REDIS_PORT` environment variable
 netbox_environment_variable_redis_port: 6379
 # Controls the `REDIS_INSECURE_SKIP_TLS_VERIFY` environment variable
 netbox_environment_variable_redis_insecure_skip_tls_verify: false
 # Controls the `REDIS_USERNAME` environment variable
-netbox_environment_variable_redis_username: ''
+netbox_environment_variable_redis_username: ""
 # Controls the `REDIS_PASSWORD` environment variable
-netbox_environment_variable_redis_password: ''
+netbox_environment_variable_redis_password: ""
 # Controls the `REDIS_TLS` environment variable
 netbox_environment_variable_redis_tls: false
 
 # Controls the `REDIS_CACHE_DATABASE` environment variable
 netbox_environment_variable_redis_cache_database: 1
 # Controls the `REDIS_CACHE_HOST` environment variable
-netbox_environment_variable_redis_cache_hostname: ''
+netbox_environment_variable_redis_cache_hostname: ""
 # Controls the `REDIS_CACHE_PORT` environment variable
 netbox_environment_variable_redis_cache_port: 6379
 # Controls the `REDIS_CACHE_INSECURE_SKIP_TLS_VERIFY` environment variable
 netbox_environment_variable_redis_cache_insecure_skip_tls_verify: false
 # Controls the `REDIS_CACHE_USERNAME` environment variable
-netbox_environment_variable_redis_cache_username: ''
+netbox_environment_variable_redis_cache_username: ""
 # Controls the `REDIS_CACHE_PASSWORD` environment variable
-netbox_environment_variable_redis_cache_password: ''
+netbox_environment_variable_redis_cache_password: ""
 # Controls the `REDIS_CACHE_TLS` environment variable
 netbox_environment_variable_redis_cache_tls: false
 
 # To create a superuser with some initial credentials, specify the variables below.
 # Changing the password variable subsequently will not reset an existing user's actual password.
-netbox_environment_variable_superuser_api_token: ''
-netbox_environment_variable_superuser_name: ''
-netbox_environment_variable_superuser_email: ''
-netbox_environment_variable_superuser_password: ''
+netbox_environment_variable_superuser_api_token: ""
+netbox_environment_variable_superuser_name: ""
+netbox_environment_variable_superuser_email: ""
+netbox_environment_variable_superuser_password: ""
 
 # Controls the `EMAIL_FROM` environment variable
-netbox_environment_variable_email_from: ''
+netbox_environment_variable_email_from: ""
 # Controls the `EMAIL_PASSWORD` environment variable
-netbox_environment_variable_email_password: ''
+netbox_environment_variable_email_password: ""
 # Controls the `EMAIL_PORT` environment variable
 netbox_environment_variable_email_port: 587
 # Controls the `EMAIL_SERVER` environment variable
-netbox_environment_variable_email_server: ''
+netbox_environment_variable_email_server: ""
 # Controls the `EMAIL_TIMEOUT` environment variable
 netbox_environment_variable_email_timeout: 5
 # Controls the `EMAIL_USERNAME` environment variable
-netbox_environment_variable_email_username: ''
+netbox_environment_variable_email_username: ""
 # Controls the `EMAIL_USE_SSL` environment variable
 # Also see: netbox_environment_variable_email_use_tls
 netbox_environment_variable_email_use_ssl: false
@@ -312,7 +312,7 @@ netbox_environment_variable_email_use_tls: true
 netbox_environment_variable_skip_superuser: "{{ netbox_environment_variable_superuser_name == '' }}"
 
 # Additional environment variables.
-netbox_environment_variables_additional_variables: ''
+netbox_environment_variables_additional_variables: ""
 
 # Additional Python configuration that will be mounted into the container as an `extra.py` file.
 # See https://github.com/netbox-community/netbox-docker/blob/release/configuration/extra.py
@@ -324,4 +324,4 @@ netbox_environment_variables_additional_variables: ''
 #   SOCIAL_AUTH_KEYCLOAK_PUBLIC_KEY = ''
 #   SOCIAL_AUTH_KEYCLOAK_AUTHORIZATION_URL = ''
 #   SOCIAL_AUTH_KEYCLOAK_ACCESS_TOKEN_URL = ''
-netbox_configuration_extra_python: ''
+netbox_configuration_extra_python: ""
