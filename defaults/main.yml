@@ -154,7 +154,7 @@ netbox_container_labels_additional_labels: "{{ netbox_container_labels_additiona
 netbox_container_labels_additional_labels_auto: {}
 netbox_container_labels_additional_labels_custom: {}
 
-# A list of extra arguments to pass to the container
+# A list of extra arguments to pass to the container (`docker create` command)
 netbox_container_extra_arguments: "{{ netbox_container_extra_arguments_auto + netbox_container_extra_arguments_custom }}"
 netbox_container_extra_arguments_auto: []
 netbox_container_extra_arguments_custom: []
