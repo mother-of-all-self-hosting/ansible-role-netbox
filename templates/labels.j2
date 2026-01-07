@@ -67,4 +67,6 @@ traefik.http.routers.{{ netbox_identifier }}.tls.certResolver={{ netbox_containe
 traefik.http.services.{{ netbox_identifier }}.loadbalancer.server.port={{ netbox_container_http_port }}
 {% endif %}
 
-{{ netbox_container_labels_additional_labels }}
+{% for arg in netbox_container_labels_additional_labels %}
+{{ arg }}
+{% endfor %}
