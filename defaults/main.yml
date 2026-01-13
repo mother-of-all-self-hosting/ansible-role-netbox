@@ -110,7 +110,7 @@ netbox_container_additional_volumes_custom: []
 # netbox_container_labels_traefik_enabled controls whether labels to assist a Traefik reverse-proxy will be attached to the container.
 # See `../templates/labels.j2` for details.
 #
-# To inject your own other container labels, see `netbox_container_labels_additional_labels`.
+# To inject your own other container labels, see `netbox_container_labels_additional_labels_custom`.
 netbox_container_labels_traefik_enabled: true
 netbox_container_labels_traefik_docker_network: "{{ netbox_container_network }}"
 netbox_container_labels_traefik_hostname: "{{ netbox_hostname }}"
