@@ -10,6 +10,7 @@
       Please change your configuration to rename the variable (`{{ item.old }}` -> `{{ item.new }}`).
   when: "lookup('ansible.builtin.varnames', ('^' + item.old + '$'), wantlist=True) | length > 0"
   with_items:
+    - { "old": "netbox_container_http_bind_port", "new": "netbox_container_http_host_bind_port" }
     - { "old": "netbox_environment_variable_redis_host", "new": "netbox_environment_variable_redis_hostname" }
     - { "old": "netbox_environment_variable_redis_cache_host", "new": "netbox_environment_variable_redis_cache_hostname" }
     - { "old": "netbox_http_header_content_permission_policy", "new": "netbox_http_header_permissions_policy" }
