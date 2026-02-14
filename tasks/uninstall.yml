@@ -37,6 +37,7 @@
       community.docker.docker_network:
         name: "{{ netbox_container_network }}"
         state: absent
+      register: netbox_network_deletion_result
 
     - name: Ensure NetBox container network does not exist via ansible.builtin.command
       when: devture_systemd_docker_base_container_network_creation_method == 'command'
@@ -44,8 +45,8 @@
         cmd: >-
           {{ devture_systemd_docker_base_host_command_docker }} network rm
           {{ netbox_container_network }}
-      register: network_deletion_result
-      changed_when: netbox_container_network in network_deletion_result.stdout
+      register: netbox_network_deletion_result
+      changed_when: netbox_container_network in netbox_network_deletion_result.stdout
 
     - name: Ensure NetBox path does not exist
       ansible.builtin.file:
