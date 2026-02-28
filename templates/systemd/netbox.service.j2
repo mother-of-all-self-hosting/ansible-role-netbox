@@ -18,8 +18,7 @@ DefaultDependencies=no
 [Service]
 Type=simple
 Environment="HOME={{ devture_systemd_docker_base_systemd_unit_home_path }}"
-ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} stop -t {{ devture_systemd_docker_base_container_stop_grace_time_seconds }} {{ netbox_identifier }} 2>/dev/null || true'
-ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ netbox_identifier }} 2>/dev/null || true'
+ExecStartPre={{ devture_systemd_docker_base_host_command_sh }} -c 'i=0; while [ "$i" -lt 10 ]; do {{ devture_systemd_docker_base_host_command_docker }} rm -f {{ netbox_identifier }} >/dev/null 2>&1 || true; if ! {{ devture_systemd_docker_base_host_command_docker }} inspect {{ netbox_identifier }} >/dev/null 2>&1; then exit 0; fi; i=$((i + 1)); sleep 1; done; echo "Failed to remove stale container {{ netbox_identifier }}" >&2; exit 1'
 
 {#
   If we try to start the container with a regular user, we get:
@@ -46,12 +45,12 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       --name={{ netbox_identifier }} \
       --log-driver=none \
       --cap-drop=ALL \
-      --cap-add=SETGID \
       --cap-add=SETUID \
+      --cap-add=SETGID \
       --read-only \
       --network={{ netbox_container_network }} \
-      {% if netbox_container_http_host_bind_port %}
-      -p {{ netbox_container_http_host_bind_port }}:{{ netbox_container_http_port }} \
+      {% if netbox_container_http_bind_port %}
+      -p {{ netbox_container_http_bind_port }}:{{ netbox_container_http_port }} \
       {% endif %}
       --env-file={{ netbox_base_path }}/env \
       --label-file={{ netbox_base_path }}/labels \
@@ -62,9 +61,9 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       {% for volume in netbox_container_additional_volumes %}
       --mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options else '' }} \
       {% endfor %}
-      --tmpfs=/opt/unit:rw,noexec,nosuid,size={{ netbox_container_tmpfs_unit_size }} \
-      --tmpfs=/opt/unit/state:rw,noexec,nosuid,size={{ netbox_container_tmpfs_state_size }} \
-      --tmpfs=/opt/unit/tmp:rw,noexec,nosuid,size={{ netbox_container_tmpfs_tmp_size }} \
+      --tmpfs=/opt/unit:rw,noexec,nosuid,size=100m \
+      --tmpfs=/opt/unit/state:rw,noexec,nosuid,size=100m \
+      --tmpfs=/opt/unit/tmp:rw,noexec,nosuid,size=100m \
       {% for arg in netbox_container_extra_arguments %}
       {{ arg }} \
       {% endfor %}
