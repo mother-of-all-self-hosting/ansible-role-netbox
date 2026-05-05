@@ -70,7 +70,6 @@ netbox_container_image_tag: "{{ netbox_version }}"
 netbox_container_image_registry_prefix: "{{ netbox_container_image_registry_prefix_upstream }}"
 netbox_container_image_registry_prefix_upstream: "{{ netbox_container_image_registry_prefix_upstream_default }}"
 netbox_container_image_registry_prefix_upstream_default: docker.io/
-netbox_container_image_force_pull: "{{ netbox_container_image.endswith(':latest') }}"
 
 # netbox_container_image_customized is the name of the locally built NetBox image
 # which adds various customizations on top of the original (upstream) NetBox image.

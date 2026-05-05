@@ -14,6 +14,7 @@
     - { "old": "netbox_environment_variable_redis_host", "new": "netbox_environment_variable_redis_hostname" }
     - { "old": "netbox_environment_variable_redis_cache_host", "new": "netbox_environment_variable_redis_cache_hostname" }
     - { "old": "netbox_http_header_content_permission_policy", "new": "netbox_http_header_permissions_policy" }
+    - { "old": "netbox_container_image_force_pull", "new": "<removed> (the new community.docker.docker_image_pull module handles this natively)" }
 
 - name: Fail if required NetBox settings not defined
   ansible.builtin.fail:
