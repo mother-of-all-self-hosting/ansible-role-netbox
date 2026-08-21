@@ -38,6 +38,7 @@ provisioner:
         netbox_hostname: localhost
         netbox_container_labels_traefik_enabled: false
         netbox_container_http_host_bind_port: 8080
+        netbox_housekeeping_script_enabled: true
         netbox_environment_variable_secret_key: randoma2x9Gl6es8hWwhyMSD4M81QCR4BJxQdyoEqCtaw1w7EYTdjYGcJvztBcHj
         netbox_environment_variable_redis_cache_hostname: "{{ valkey_identifier }}"
         netbox_environment_variable_superuser_name: root

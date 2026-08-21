@@ -14,23 +14,31 @@
   block:
     - name: Ensure NetBox systemd services are stopped
       ansible.builtin.service:
-        name: "{{ item }}"
+        name: "{{ item.name }}"
         state: stopped
         enabled: false
         daemon_reload: true
       with_items:
-        - "{{ netbox_identifier }}"
-        - "{{ netbox_identifier }}-worker"
-        - "{{ netbox_identifier }}-housekeeping"
+        - name: "{{ netbox_identifier }}"
+          when: true
+        - name: "{{ netbox_identifier }}-worker"
+          when: true
+        - name: "{{ netbox_identifier }}-housekeeping"
+          when: "{{ netbox_housekeeping_script_enabled }}"
+      when: item.when | bool
 
     - name: Ensure NetBox systemd services do not exist
       ansible.builtin.file:
-        path: "{{ devture_systemd_docker_base_systemd_path }}/{{ item }}.service"
+        path: "{{ devture_systemd_docker_base_systemd_path }}/{{ item.name }}.service"
         state: absent
       with_items:
-        - "{{ netbox_identifier }}"
-        - "{{ netbox_identifier }}-worker"
-        - "{{ netbox_identifier }}-housekeeping"
+        - name: "{{ netbox_identifier }}"
+          when: true
+        - name: "{{ netbox_identifier }}-worker"
+          when: true
+        - name: "{{ netbox_identifier }}-housekeeping"
+          when: "{{ netbox_housekeeping_script_enabled }}"
+      when: item.when | bool
 
     - name: Ensure NetBox container network does not exist
       when: netbox_container_network_deletion_enabled

@@ -121,7 +121,11 @@
   with_items:
     - src: netbox.service.j2
       dst: "{{ netbox_identifier }}.service"
+      when: true
     - src: netbox-worker.service.j2
       dst: "{{ netbox_identifier }}-worker.service"
+      when: true
     - src: netbox-housekeeping.service.j2
       dst: "{{ netbox_identifier }}-housekeeping.service"
+      when: "{{ netbox_housekeeping_script_enabled }}"
+  when: item.when | bool

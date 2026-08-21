@@ -37,19 +37,22 @@
         fail_msg: "netbox-worker.service not active ({{ netbox_worker_service.status.ActiveState }})"
         success_msg: "netbox-worker.service is active"
 
-    - name: Wait for NetBox housekeeping service to become active (up to 180s)
-      ansible.builtin.systemd:
-        name: netbox-housekeeping.service
-      register: netbox_housekeeping_service
-      until: netbox_housekeeping_service.status.ActiveState == 'active'
-      retries: 36
-      delay: 5
+    - name: Run if housekeeping script for NetBox is installed
+      when: netbox_housekeeping_script_enabled | bool
+      block:
+        - name: Wait for NetBox housekeeping service to become active (up to 180s)
+          ansible.builtin.systemd:
+            name: netbox-housekeeping.service
+          register: netbox_housekeeping_service
+          until: netbox_housekeeping_service.status.ActiveState == 'active'
+          retries: 36
+          delay: 5
 
-    - name: Assert NetBox housekeeping service is active
-      ansible.builtin.assert:
-        that: netbox_housekeeping_service.status.ActiveState == 'active'
-        fail_msg: "netbox-housekeeping.service not active ({{ netbox_housekeeping_service.status.ActiveState }})"
-        success_msg: "netbox-housekeeping.service is active"
+        - name: Assert NetBox housekeeping service is active
+          ansible.builtin.assert:
+            that: netbox_housekeeping_service.status.ActiveState == 'active'
+            fail_msg: "netbox-housekeeping.service not active ({{ netbox_housekeeping_service.status.ActiveState }})"
+            success_msg: "netbox-housekeeping.service is active"
 
     - name: Retrieve NetBox service log for debugging
       when: netbox_debug_service_enabled | bool
