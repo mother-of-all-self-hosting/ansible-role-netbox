@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
+# SPDX-FileCopyrightText: 2026 spatterlight
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Verify NetBox systemd service
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for NetBox service to become active (up to 180s)
+      ansible.builtin.systemd:
+        name: netbox.service
+      register: netbox_service
+      until: netbox_service.status.ActiveState == 'active'
+      retries: 36
+      delay: 5
+
+    - name: Assert NetBox service is active
+      ansible.builtin.assert:
+        that: netbox_service.status.ActiveState == 'active'
+        fail_msg: "netbox.service not active ({{ netbox_service.status.ActiveState }})"
+        success_msg: "netbox.service is active"
+
+    - name: Wait for NetBox worker service to become active (up to 180s)
+      ansible.builtin.systemd:
+        name: netbox-worker.service
+      register: netbox_worker_service
+      until: netbox_worker_service.status.ActiveState == 'active'
+      retries: 36
+      delay: 5
+
+    - name: Assert NetBox worker service is active
+      ansible.builtin.assert:
+        that: netbox_worker_service.status.ActiveState == 'active'
+        fail_msg: "netbox-worker.service not active ({{ netbox_worker_service.status.ActiveState }})"
+        success_msg: "netbox-worker.service is active"
+
+    - name: Wait for NetBox housekeeping service to become active (up to 180s)
+      ansible.builtin.systemd:
+        name: netbox-housekeeping.service
+      register: netbox_housekeeping_service
+      until: netbox_housekeeping_service.status.ActiveState == 'active'
+      retries: 36
+      delay: 5
+
+    - name: Assert NetBox housekeeping service is active
+      ansible.builtin.assert:
+        that: netbox_housekeeping_service.status.ActiveState == 'active'
+        fail_msg: "netbox-housekeeping.service not active ({{ netbox_housekeeping_service.status.ActiveState }})"
+        success_msg: "netbox-housekeeping.service is active"
+
+    - name: Retrieve NetBox service log for debugging
+      when: netbox_debug_service_enabled | bool
+      ansible.builtin.command:
+        cmd: journalctl -xeu netbox.service
+      changed_when: false
+
+    - name: Wait for NetBox HTTP endpoint to respond (up to 10m)
+      ansible.builtin.uri:
+        url: "http://localhost:8080/"
+        method: GET
+        status_code: [200, 301, 302]
+        follow_redirects: none
+      register: netbox_endpoint
+      until: netbox_endpoint.status in [200, 301, 302]
+      retries: 120
+      delay: 5
+
+    - name: Assert NetBox HTTP endpoint responds
+      ansible.builtin.assert:
+        that: netbox_endpoint.status in [200, 301, 302]
+        fail_msg: "NetBox did not respond as expected ({{ netbox_endpoint.status | default('no response') }})"
+        success_msg: "NetBox responded with {{ netbox_endpoint.status }}"
+
+    - name: Show NetBox systemd service status summary
+      ansible.builtin.debug:
+        msg:
+          - "NetBox systemd: {{ netbox_service.status.ActiveState }}"
+          - "NetBox HTTP: {{ netbox_endpoint.status }}"

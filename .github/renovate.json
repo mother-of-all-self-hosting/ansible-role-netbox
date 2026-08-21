@@ -32,7 +32,7 @@
       "groupName": "GitHub Actions dependencies"
     },
     {
-      "matchManagers": ["dockerfile", "mise", "pre-commit"],
+      "matchManagers": ["dockerfile", "mise", "pip_requirements", "pre-commit", "pyenv"],
       "schedule": ["* * 1-7 */6 *"],
       "automergeSchedule": ["* * 1-14 */6 *"]
     }
