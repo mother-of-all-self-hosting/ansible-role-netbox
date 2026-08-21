@@ -33,15 +33,12 @@
     - netbox_hostname
     - netbox_path_prefix
     - netbox_container_network
-
     - netbox_database_hostname
     - netbox_database_name
     - netbox_database_username
     - netbox_database_password
-
     - netbox_redis_hostname
     - netbox_environment_variable_redis_cache_hostname
-
     - netbox_environment_variable_secret_key
 
 # Prevent a common gotcha
