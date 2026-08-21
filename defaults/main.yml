@@ -260,11 +260,19 @@ netbox_container_cleanup_command: |
   echo "Failed to remove stale container {{ netbox_identifier }} after {{ netbox_container_cleanup_timeout_seconds }} attempts" >&2;
   exit 1
 
+# Specify database configuration
 netbox_database_hostname: ""
 netbox_database_port: 5432
 netbox_database_name: netbox
 netbox_database_username: netbox
 netbox_database_password: ""
+
+# Specify Redis configuration
+netbox_redis_hostname: ""
+netbox_redis_port: 6379
+netbox_redis_username: ""
+netbox_redis_password: ""
+netbox_redis_database: 0
 
 # Specify the timezone
 netbox_environment_variables_tz: UTC
@@ -293,18 +301,8 @@ netbox_environment_variable_graphql_enabled: true
 # Controls the `HOUSEKEEPING_INTERVAL` environment variable
 netbox_environment_variable_housekeeping_interval: 86400
 
-# Controls the `REDIS_DATABASE` environment variable
-netbox_environment_variable_redis_database: 0
-# Controls the `REDIS_HOST` environment variable
-netbox_environment_variable_redis_hostname: ""
-# Controls the `REDIS_PORT` environment variable
-netbox_environment_variable_redis_port: 6379
 # Controls the `REDIS_INSECURE_SKIP_TLS_VERIFY` environment variable
 netbox_environment_variable_redis_insecure_skip_tls_verify: false
-# Controls the `REDIS_USERNAME` environment variable
-netbox_environment_variable_redis_username: ""
-# Controls the `REDIS_PASSWORD` environment variable
-netbox_environment_variable_redis_password: ""
 # Controls the `REDIS_TLS` environment variable
 netbox_environment_variable_redis_tls: false
 

@@ -11,7 +11,12 @@
   when: "lookup('ansible.builtin.varnames', ('^' + item.old + '$'), wantlist=True) | length > 0"
   with_items:
     - { "old": "netbox_container_http_bind_port", "new": "netbox_container_http_host_bind_port" }
-    - { "old": "netbox_environment_variable_redis_host", "new": "netbox_environment_variable_redis_hostname" }
+    - { "old": "netbox_environment_variable_redis_host", "new": "netbox_redis_hostname" }
+    - { "old": "netbox_environment_variable_redis_hostname", "new": "netbox_redis_hostname" }
+    - { "old": "netbox_environment_variable_redis_port", "new": "netbox_redis_port" }
+    - { "old": "netbox_environment_variable_redis_username", "new": "netbox_redis_username" }
+    - { "old": "netbox_environment_variable_redis_password", "new": "netbox_redis_password" }
+    - { "old": "netbox_environment_variable_redis_database", "new": "netbox_redis_database" }
     - { "old": "netbox_environment_variable_redis_cache_host", "new": "netbox_environment_variable_redis_cache_hostname" }
     - { "old": "netbox_http_header_content_permission_policy", "new": "netbox_http_header_permissions_policy" }
     - { "old": "netbox_container_image_force_pull", "new": "<removed> (the new community.docker.docker_image_pull module handles this natively)" }
@@ -34,7 +39,7 @@
     - netbox_database_username
     - netbox_database_password
 
-    - netbox_environment_variable_redis_hostname
+    - netbox_redis_hostname
     - netbox_environment_variable_redis_cache_hostname
 
     - netbox_environment_variable_secret_key
