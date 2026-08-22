@@ -21,7 +21,7 @@ netbox_scripts_path: "{{ netbox_base_path }}/scripts"
 netbox_customized_container_src_path: "{{ netbox_base_path }}/customized-container-src"
 
 # renovate: datasource=docker depName=netboxcommunity/netbox versioning=loose
-netbox_version: v4.5.1-3.4.2
+netbox_version: v4.7.0-beta1-5.0.2
 
 netbox_uid: ""
 netbox_gid: ""
