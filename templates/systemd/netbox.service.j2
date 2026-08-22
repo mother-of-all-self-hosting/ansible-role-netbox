@@ -30,14 +30,12 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_sh }} -c '{{ netbox_con
 
   This container must run as root, because it's:
   - using unitd and trying to create and change to arbitrary users/groups
-  - trying to write to /opt/unit/state/certs and /opt/unit
+  - trying to write to /tmp
   - possibly other reasons
 
-  By using tmpfs for /opt/unit/state/certs and /opt/unit, we can at least keep --read-only around.
+  By using tmpfs for /tmp, we can at least keep --read-only around.
 
-  See: https://github.com/netbox-community/netbox-docker/blob/97ee353b00804d3acdb2f6e0e4a001145e66d09f/docker/launch-netbox.sh#L49-L57
-
-  We mount /opt/unit/tmp as well, because temporary files (during image/media uploads) need to be stored there.
+  See: https://github.com/netbox-community/netbox-docker/commit/07fcb205b4f6bd00d98c39fe84629ca7f1f76325#diff-87b3f6ddd4b975fe33d91a3fc87ab7b6032b2473b680cb82b1bc6e9cf3446826
 #}
 
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
@@ -61,9 +59,6 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       {% for volume in netbox_container_additional_volumes %}
       --mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options | default('') else '' }} \
       {% endfor %}
-      --tmpfs=/opt/unit:rw,noexec,nosuid,size={{ netbox_container_tmpfs_unit_size }} \
-      --tmpfs=/opt/unit/state:rw,noexec,nosuid,size={{ netbox_container_tmpfs_state_size }} \
-      --tmpfs=/opt/unit/tmp:rw,noexec,nosuid,size={{ netbox_container_tmpfs_tmp_size }} \
       --tmpfs=/tmp:rw,noexec,nosuid,size={{ netbox_container_tmpfs_tmp_size }} \
       {% for arg in netbox_container_extra_arguments %}
       {{ arg }} \

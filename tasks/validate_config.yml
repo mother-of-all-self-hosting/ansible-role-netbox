@@ -11,6 +11,8 @@
   when: "lookup('ansible.builtin.varnames', ('^' + item.old + '$'), wantlist=True) | length > 0"
   with_items:
     - { "old": "netbox_container_http_bind_port", "new": "netbox_container_http_host_bind_port" }
+    - { "old": "netbox_container_tmpfs_state_size", "new": "<removed> (since v4.0.0 NetBox uses Granian instead of Nginx Unit)" }
+    - { "old": "netbox_container_tmpfs_unit_size", "new": "<removed> (since v4.0.0 NetBox uses Granian instead of Nginx Unit)" }
     - { "old": "netbox_environment_variable_redis_host", "new": "netbox_redis_hostname" }
     - { "old": "netbox_environment_variable_redis_hostname", "new": "netbox_redis_hostname" }
     - { "old": "netbox_environment_variable_redis_port", "new": "netbox_redis_port" }
