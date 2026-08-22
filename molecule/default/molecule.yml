@@ -46,6 +46,7 @@ provisioner:
         netbox_environment_variable_superuser_password: password
         netbox_environment_variables_additional_variables: |
           DB_WAIT_DEBUG=1
+          API_TOKEN_PEPPER_1='Qy+F=OTeGskWQ(wTMgjc+NPPlz6YwFXY=KHIIg=wpYXT&e(6u8'
 
         # Variables required for NetBox to connect to the Postgres database
         netbox_database_hostname: "{{ postgres_connection_hostname }}"
