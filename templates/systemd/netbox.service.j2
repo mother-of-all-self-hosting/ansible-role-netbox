@@ -1,5 +1,6 @@
 {#
 SPDX-FileCopyrightText: 2023 Slavi Pantaleev
+SPDX-FileCopyrightText: 2026 Suguru Hirahara
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 #}
@@ -21,19 +22,7 @@ Environment="HOME={{ devture_systemd_docker_base_systemd_unit_home_path }}"
 ExecStartPre={{ devture_systemd_docker_base_host_command_sh }} -c '{{ netbox_container_cleanup_command | trim | replace("\n", " ") }}'
 
 {#
-  If we try to start the container with a regular user, we get:
-  > ✅ Initialisation is done.
-  > ⏳ Waiting for control socket to be created... (1/10)
-  > 2023/03/26 07:15:17 [warn] 7#7 Unit is running unprivileged, then it cannot use arbitrary user and group.
-  > 2023/03/26 07:15:17 [alert] 7#7 Unable to create certificates storage directory: mkdir(/opt/unit/state/certs/) failed (30: Read-only file system)
-  > 2023/03/26 07:15:17 [alert] 7#7 bind(6, unix:/opt/unit/unit.sock.tmp) failed (30: Read-only file system)
-
-  This container must run as root, because it's:
-  - using unitd and trying to create and change to arbitrary users/groups
-  - trying to write to /tmp
-  - possibly other reasons
-
-  By using tmpfs for /tmp, we can at least keep --read-only around.
+  tmpfs for /tmp is necessary to keep filesystem read-only.
 
   See: https://github.com/netbox-community/netbox-docker/commit/07fcb205b4f6bd00d98c39fe84629ca7f1f76325#diff-87b3f6ddd4b975fe33d91a3fc87ab7b6032b2473b680cb82b1bc6e9cf3446826
 #}
@@ -42,6 +31,7 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       --rm \
       --name={{ netbox_identifier }} \
       --log-driver=none \
+      --user={{ netbox_uid }}:{{ netbox_gid }} \
       --cap-drop=ALL \
       --cap-add=SETGID \
       --cap-add=SETUID \
