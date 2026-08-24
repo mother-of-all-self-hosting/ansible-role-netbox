@@ -2,5 +2,13 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "github>mother-of-all-self-hosting/renovate-config#v1.0.0"
+  ],
+  "packageRules": [
+    {
+      "description": "netboxcommunity/netbox publishes bare NetBox tags (v4.6.8), compound NetBox + netbox-docker tags (v4.6.8-5.0.2) and prereleases (v4.7.0-beta1-5.0.2) side by side. This role pins a compound tag, so restrict candidates to that shape: `loose` versioning orders the compound tags correctly but happily ranks a bare v4.5.1 above a compound v4.4.9-4.0.1, which is how this pin has been derailed before.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["netboxcommunity/netbox"],
+      "allowedVersions": "/^v\\d+\\.\\d+\\.\\d+-\\d+\\.\\d+\\.\\d+$/"
+    }
   ]
 }
