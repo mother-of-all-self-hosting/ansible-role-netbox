@@ -39,6 +39,11 @@ provisioner:
         netbox_container_labels_traefik_enabled: false
         netbox_container_http_host_bind_port: 8080
         netbox_housekeeping_script_enabled: false
+        # Turned on so that `verify.yml` has one setting whose effect it can
+        # observe from outside the container: with this off, /metrics is a 404,
+        # and only a NetBox that was handed this role's environment file serves
+        # it. It is off by default, so nothing but this scenario depends on it.
+        netbox_environment_variable_metrics_enabled: true
         netbox_environment_variable_secret_key: randoma2x9Gl6es8hWwhyMSD4M81QCR4BJxQdyoEqCtaw1w7EYTdjYGcJvztBcHj
         netbox_environment_variable_redis_cache_hostname: "{{ valkey_identifier }}"
         netbox_environment_variable_superuser_name: root

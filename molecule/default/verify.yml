@@ -1,14 +1,57 @@
 # SPDX-FileCopyrightText: 2026 Suguru Hirahara
 # SPDX-FileCopyrightText: 2026 spatterlight
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-- name: Verify NetBox systemd service
+- name: Verify NetBox
   hosts: all
   become: true
   gather_facts: false
+
+  vars:
+    netbox_verify_base_url: "http://localhost:{{ netbox_container_http_host_bind_port }}"
+
+    netbox_verify_username: molecule
+    netbox_verify_site_name: Molecule Site
+    netbox_verify_site_slug: molecule-site
+
+    # The docker CLI is invoked directly here and below rather than through
+    # community.docker.*: the ansible-lint environment used by pre-commit has
+    # no collections installed, so those modules would fail the playbook
+    # syntax check.
+    netbox_verify_manage: >-
+      docker exec --user={{ netbox_uid }}:{{ netbox_gid }}
+      {{ netbox_defaults.netbox_identifier }} /opt/netbox/netbox/manage.py
+
+    # A single SQL statement inside the Postgres container this scenario
+    # started, printing bare values with no headers.
+    netbox_verify_psql: >-
+      docker exec --env=PGPASSWORD={{ netbox_database_password | quote }}
+      {{ postgres_identifier | default('postgres') }}
+      psql -U {{ netbox_database_username | quote }} -d {{ netbox_database_name | quote }} -tAc
+
   tasks:
+    # Role defaults are not in scope in a verify play, but the version that
+    # Renovate bumps lives in them and is what the running NetBox is checked
+    # against below. Only leaf literals may be read out of this namespace -
+    # anything Jinja-derived (`netbox_container_image_tag` and friends) would
+    # be resolved against an empty one.
+    - name: Load the NetBox role defaults
+      ansible.builtin.include_vars:
+        file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
+        name: netbox_defaults
+
+    # `netbox_version` pins a compound tag: the NetBox version and the
+    # netbox-docker version joined together, `v4.6.8-5.0.2`. The running
+    # application reports the same pair as `4.6.8-Docker-5.0.2`, so both halves
+    # of the literal Renovate bumps can be checked against the process.
+    - name: Derive the versions this role pins
+      ansible.builtin.set_fact:
+        netbox_verify_netbox_version: "{{ netbox_defaults.netbox_version | regex_replace('^v', '') | regex_replace('-.*$', '') }}"
+        netbox_verify_docker_version: "{{ netbox_defaults.netbox_version | regex_replace('^[^-]*-', '') }}"
+
     - name: Wait for NetBox service to become active (up to 180s)
       ansible.builtin.systemd:
         name: netbox.service
@@ -60,25 +103,258 @@
         cmd: journalctl -xeu netbox.service
       changed_when: false
 
-    - name: Wait for NetBox HTTP endpoint to respond (up to 10m)
-      ansible.builtin.uri:
-        url: "http://localhost:8080/"
-        method: GET
-        status_code: [200, 301, 302]
-        follow_redirects: none
-      register: netbox_endpoint
-      until: netbox_endpoint.status in [200, 301, 302]
-      retries: 120
-      delay: 5
+    # None of the units above says anything about readiness, and the obvious
+    # HTTP checks say even less. All three of these units are `Restart=always`,
+    # so a crash-looping NetBox still reads `active` most of the time. And a
+    # NetBox that cannot reach Postgres at all still answers both `/` and
+    # `/login/` with a fully rendered 200 - measured, with the database
+    # container stopped - because the login page needs no database until the
+    # form is submitted.
+    #
+    # So readiness is taken from the migrations instead. The image's entrypoint
+    # runs `manage.py migrate` on every start, which on a fresh database is
+    # minutes of work while the unit is already active and already serving.
+    # `migrate --check` exits non-zero until that finishes, and it opens a
+    # database connection to find out, so it cannot pass on a scenario whose
+    # database wiring is broken.
+    - name: Wait for NetBox to finish applying its migrations (up to 10m)
+      ansible.builtin.command:
+        cmd: "{{ netbox_verify_manage }} migrate --check"
+      register: netbox_migrate_check
+      until: netbox_migrate_check.rc == 0
+      retries: 60
+      delay: 10
+      changed_when: false
+      failed_when: false
 
-    - name: Assert NetBox HTTP endpoint responds
+    - name: Assert NetBox has applied its migrations
       ansible.builtin.assert:
-        that: netbox_endpoint.status in [200, 301, 302]
-        fail_msg: "NetBox did not respond as expected ({{ netbox_endpoint.status | default('no response') }})"
-        success_msg: "NetBox responded with {{ netbox_endpoint.status }}"
+        that: netbox_migrate_check.rc == 0
+        fail_msg: >-
+          NetBox still reports unapplied migrations:
+          {{ netbox_migrate_check.stdout | default(netbox_migrate_check.stderr) | default('no output') }}
+        success_msg: "NetBox has applied all of its migrations"
 
-    - name: Show NetBox systemd service status summary
+    # Everything below authenticates as a superuser, so one is made here rather
+    # than relying on the account the image creates from the environment file.
+    # NetBox 4.6 tokens are two-part (a lookup key and a secret) and the image
+    # only provisions one when both `SUPERUSER_API_TOKEN` and
+    # `SUPERUSER_API_KEY` are set - this role sets only the former - so the
+    # token is minted through the ORM, which hands back the plaintext that the
+    # API expects. Both statements write through the same connection the
+    # application uses.
+    - name: Create a NetBox superuser and mint an API token for it
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "--user={{ netbox_uid }}:{{ netbox_gid }}"
+          - "{{ netbox_defaults.netbox_identifier }}"
+          - /opt/netbox/netbox/manage.py
+          - shell
+          - --no-startup
+          - --no-imports
+          - --interface
+          - python
+          - -c
+          - |
+            from users.models import Token, User
+            user = User.objects.filter(username="{{ netbox_verify_username }}").first()
+            if user is None:
+                user = User.objects.create_superuser(
+                    "{{ netbox_verify_username }}", "{{ netbox_verify_username }}@example.com", "molecule-password"
+                )
+            token = Token.objects.create(user=user, description="molecule")
+            print("AUTHORIZATION=" + token.get_auth_header_prefix() + token._token)
+      register: netbox_token_result
+      changed_when: true
+
+    # NetBox's shell prefaces its output with the configuration files it
+    # loaded, so the header is picked out by its marker rather than taken as
+    # the whole of stdout. `get_auth_header_prefix()` returns the scheme and
+    # the lookup key ("Bearer nbt_<key>."), to which the secret is appended.
+    - name: Remember the NetBox authorization header
+      ansible.builtin.set_fact:
+        netbox_verify_authorization: >-
+          {{
+            netbox_token_result.stdout_lines | select('match', '^AUTHORIZATION=')
+            | first | regex_replace('^AUTHORIZATION=', '')
+          }}
+
+    # The REST API is the honest HTTP gate, precisely because it is the part
+    # that refuses to answer without touching the database: authenticating this
+    # header means looking the token up. `/api/status/` then reports what the
+    # running process believes about itself.
+    - name: Read the NetBox status endpoint (up to 5m)
+      ansible.builtin.uri:
+        url: "{{ netbox_verify_base_url }}/api/status/"
+        method: GET
+        headers:
+          Authorization: "{{ netbox_verify_authorization }}"
+        status_code: [200, 401, 403, 500, 502, 503]
+        return_content: true
+      register: netbox_status
+      until: netbox_status.status == 200
+      retries: 30
+      delay: 10
+
+    - name: Assert NetBox serves its API to an authenticated client
+      ansible.builtin.assert:
+        that: netbox_status.status == 200
+        fail_msg: "GET /api/status/ answered {{ netbox_status.status | default('nothing') }}"
+        success_msg: "NetBox serves its API to an authenticated client"
+
+    # Tying the running NetBox to the version pinned in defaults/main.yml is
+    # what makes this scenario a real test of the tag Renovate bumps: a bump to
+    # an image that cannot boot or migrate cannot pass here. Both halves of the
+    # compound tag are checked, so a pin that moved onto the bare NetBox track
+    # (which has happened here) fails rather than passing quietly.
+    - name: Assert the running NetBox is the version this role installs
+      ansible.builtin.assert:
+        that:
+          - netbox_status.json['netbox-version'] == netbox_verify_netbox_version
+          - netbox_status.json['netbox-full-version'] == netbox_verify_netbox_version ~ '-Docker-' ~ netbox_verify_docker_version
+        fail_msg: >-
+          NetBox reports {{ netbox_status.json['netbox-full-version'] | default('no version') }},
+          expected {{ netbox_verify_netbox_version }}-Docker-{{ netbox_verify_docker_version }}
+          for the pinned {{ netbox_defaults.netbox_version }}
+        success_msg: >-
+          The running NetBox reports {{ netbox_status.json['netbox-full-version'] }},
+          matching the pinned {{ netbox_defaults.netbox_version }}
+
+    # `netbox-worker.service` runs `manage.py rqworker` in the application
+    # container, and a worker announces itself by registering in Redis. NetBox
+    # counts those registrations for this field, so a non-zero count is the one
+    # statement that covers the whole chain at once: the worker process is
+    # alive, and both it and the web process reached the Valkey this scenario
+    # wired up. The unit reading `active` shows none of that - it would read
+    # active while respawning every 30 seconds against an unreachable Valkey.
+    - name: Wait for the NetBox worker to register itself in Valkey (up to 5m)
+      ansible.builtin.uri:
+        url: "{{ netbox_verify_base_url }}/api/status/"
+        method: GET
+        headers:
+          Authorization: "{{ netbox_verify_authorization }}"
+        status_code: [200, 401, 403, 500, 502, 503]
+        return_content: true
+      register: netbox_workers
+      until: netbox_workers.status == 200 and (netbox_workers.json['rq-workers-running'] | default(0) | int) > 0
+      retries: 30
+      delay: 10
+
+    - name: Assert a NetBox worker is running
+      ansible.builtin.assert:
+        that: (netbox_workers.json['rq-workers-running'] | default(0) | int) > 0
+        fail_msg: >-
+          NetBox reports {{ netbox_workers.json['rq-workers-running'] | default('no') }} running
+          rq workers, so netbox-worker.service is not reaching Valkey
+        success_msg: >-
+          NetBox reports {{ netbox_workers.json['rq-workers-running'] }} running rq worker(s)
+
+    # From here on the scenario exercises what NetBox is for: recording
+    # infrastructure. A site is the root object of the DCIM model, and creating
+    # one writes a row through the REST API.
+    - name: Create a site through the NetBox REST API
+      ansible.builtin.uri:
+        url: "{{ netbox_verify_base_url }}/api/dcim/sites/"
+        method: POST
+        headers:
+          Authorization: "{{ netbox_verify_authorization }}"
+        body_format: json
+        body:
+          name: "{{ netbox_verify_site_name }}"
+          slug: "{{ netbox_verify_site_slug }}"
+          status: active
+        status_code: [201, 400, 403, 500]
+        return_content: true
+      register: netbox_site_created
+      changed_when: netbox_site_created.status == 201
+
+    - name: Assert the site was created
+      ansible.builtin.assert:
+        that:
+          - netbox_site_created.status == 201
+          - netbox_site_created.json.name == netbox_verify_site_name
+          - netbox_site_created.json.slug == netbox_verify_site_slug
+          - netbox_site_created.json.status.value == 'active'
+        fail_msg: >-
+          Unexpected response to creating a site ({{ netbox_site_created.status }}):
+          {{ netbox_site_created.json | default(netbox_site_created.content) | default('no payload') }}
+        success_msg: "The site '{{ netbox_verify_site_name }}' was created with id {{ netbox_site_created.json.id | default('none') }}"
+
+    - name: Read the site back through the NetBox REST API
+      ansible.builtin.uri:
+        url: "{{ netbox_verify_base_url }}/api/dcim/sites/{{ netbox_site_created.json.id }}/"
+        method: GET
+        headers:
+          Authorization: "{{ netbox_verify_authorization }}"
+        status_code: [200, 403, 404, 500]
+        return_content: true
+      register: netbox_site_read
+
+    - name: Assert the site reads back as it was created
+      ansible.builtin.assert:
+        that:
+          - netbox_site_read.status == 200
+          - netbox_site_read.json.name == netbox_verify_site_name
+          - netbox_site_read.json.slug == netbox_verify_site_slug
+        fail_msg: "Reading the site back answered {{ netbox_site_read.status }}: {{ netbox_site_read.json | default('no payload') }}"
+        success_msg: "The site reads back as '{{ netbox_site_read.json.name | default('nothing') }}'"
+
+    # The round trip closes here. Everything above would read the same if
+    # NetBox had quietly fallen back to some other database, so the row is
+    # looked up in the Postgres container this scenario started rather than
+    # taken on the application's word.
+    - name: Read the site out of the Postgres container
+      ansible.builtin.command:
+        cmd: >-
+          {{ netbox_verify_psql }}
+          {{ ("SELECT name, slug, status FROM dcim_site WHERE slug = '" ~ netbox_verify_site_slug ~ "'") | quote }}
+      register: netbox_site_row
+      changed_when: false
+
+    - name: Assert the site was written to the database this scenario wired up
+      vars:
+        netbox_verify_row: "{{ netbox_site_row.stdout | trim | regex_replace('[|]', ' ') | regex_replace('\\s+', ' ') }}"
+      ansible.builtin.assert:
+        that: netbox_verify_row == netbox_verify_site_name ~ ' ' ~ netbox_verify_site_slug ~ ' active'
+        fail_msg: >-
+          The dcim_site row for '{{ netbox_verify_site_slug }}' reads
+          '{{ netbox_verify_row | default('nothing at all', true) }}' in the Postgres
+          database '{{ netbox_database_name }}' - NetBox is not using it
+        success_msg: "The Postgres database '{{ netbox_database_name }}' holds the site this scenario created"
+
+    # And one setting from the role's environment file is observed taking
+    # effect in the process. `METRICS_ENABLED` is turned on by this scenario
+    # alone (the role default is off, in which case this path is a 404), so a
+    # NetBox running on upstream defaults, or one started without the
+    # environment file this role writes, cannot serve it.
+    - name: Retrieve the NetBox metrics endpoint
+      ansible.builtin.uri:
+        url: "{{ netbox_verify_base_url }}/metrics"
+        method: GET
+        status_code: [200, 404, 403, 500]
+        return_content: true
+      register: netbox_metrics
+
+    - name: Assert the metrics endpoint this scenario enabled is served
+      ansible.builtin.assert:
+        that:
+          - netbox_metrics.status == 200
+          - "'django_http_requests_total_by_method_total' in netbox_metrics.content"
+        fail_msg: >-
+          GET /metrics answered {{ netbox_metrics.status }}, so METRICS_ENABLED from this role's
+          environment file did not reach the NetBox process
+        success_msg: "The metrics endpoint reflects METRICS_ENABLED from this role's environment file"
+
+    - name: Show NetBox verification summary
       ansible.builtin.debug:
         msg:
           - "NetBox systemd: {{ netbox_service.status.ActiveState }}"
-          - "NetBox HTTP: {{ netbox_endpoint.status }}"
+          - "Worker systemd: {{ netbox_worker_service.status.ActiveState }}"
+          - "Migrations: applied"
+          - "Version: {{ netbox_status.json['netbox-full-version'] }} (pinned {{ netbox_defaults.netbox_version }})"
+          - "Django: {{ netbox_status.json['django-version'] }}, Python: {{ netbox_status.json['python-version'] }}"
+          - "rq workers running: {{ netbox_workers.json['rq-workers-running'] }}"
+          - "Site round trip: API id {{ netbox_site_created.json.id }}, Postgres row '{{ netbox_site_row.stdout | trim }}'"
+          - "Metrics endpoint: {{ netbox_metrics.status }}"
