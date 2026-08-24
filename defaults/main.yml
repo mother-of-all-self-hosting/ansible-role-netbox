@@ -77,7 +77,7 @@ netbox_container_image_registry_prefix_upstream_default: docker.io/
 netbox_container_image_customized: "localhost/netbox:{{ netbox_container_image_tag }}-customized"
 
 # netbox_container_image_final holds the name of the NetBox image to run depending on whether or not customizations are enabled.
-netbox_container_image_final: "{{ netbox_container_image_customized if netbox_container_image_customizations_enabled else netbox_container_image }} "
+netbox_container_image_final: "{{ netbox_container_image_customized if netbox_container_image_customizations_enabled else netbox_container_image }}"
 
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 netbox_container_network: "{{ netbox_identifier }}"
