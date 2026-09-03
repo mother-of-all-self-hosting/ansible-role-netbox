@@ -339,14 +339,14 @@
           environment file did not reach the NetBox process
         success_msg: "The metrics endpoint reflects METRICS_ENABLED from this role's environment file"
 
-    - name: Show NetBox verification summary
+    - name: Show the NetBox verification summary
       ansible.builtin.debug:
         msg:
           - "NetBox systemd: {{ netbox_service.status.ActiveState }}"
-          - "Worker systemd: {{ netbox_worker_service.status.ActiveState }}"
-          - "Migrations: applied"
-          - "Version: {{ netbox_status.json['netbox-full-version'] }} (pinned {{ netbox_defaults.netbox_version }})"
-          - "Django: {{ netbox_status.json['django-version'] }}, Python: {{ netbox_status.json['python-version'] }}"
-          - "rq workers running: {{ netbox_workers.json['rq-workers-running'] }}"
-          - "Site round trip: API id {{ netbox_site_created.json.id }}, Postgres row '{{ netbox_site_row.stdout | trim }}'"
-          - "Metrics endpoint: {{ netbox_metrics.status }}"
+          - "NetBox worker systemd: {{ netbox_worker_service.status.ActiveState }}"
+          - "NetBox version: {{ netbox_status.json['netbox-full-version'] }} (pinned {{ netbox_defaults.netbox_version }})"
+          - "NetBox migrations: applied"
+          - "NetBox Django: {{ netbox_status.json['django-version'] }}, Python: {{ netbox_status.json['python-version'] }}"
+          - "NetBox rq workers running: {{ netbox_workers.json['rq-workers-running'] }}"
+          - "NetBox site round trip: API id {{ netbox_site_created.json.id }}, Postgres row '{{ netbox_site_row.stdout | trim }}'"
+          - "NetBox metrics endpoint: {{ netbox_metrics.status }}"
