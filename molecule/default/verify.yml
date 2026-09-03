@@ -201,7 +201,7 @@
     - name: Assert NetBox serves its API to an authenticated client
       ansible.builtin.assert:
         that: netbox_status.status == 200
-        fail_msg: "GET /api/status/ answered {{ netbox_status.status | default('nothing') }}"
+        fail_msg: "GET /api/status/ answered {{ netbox_status.status | default('none') }}"
         success_msg: "NetBox serves its API to an authenticated client"
 
     # Note that a pin that moved onto the bare NetBox track
@@ -291,7 +291,7 @@
           - netbox_site_read.json.name == netbox_verify_site_name
           - netbox_site_read.json.slug == netbox_verify_site_slug
         fail_msg: "Reading the site back answered {{ netbox_site_read.status }}: {{ netbox_site_read.json | default('no payload') }}"
-        success_msg: "The site reads back as '{{ netbox_site_read.json.name | default('nothing') }}'"
+        success_msg: "The site reads back as '{{ netbox_site_read.json.name | default('none') }}'"
 
     # The round trip closes here. Everything above would read the same if
     # NetBox had quietly fallen back to some other database, so the row is
