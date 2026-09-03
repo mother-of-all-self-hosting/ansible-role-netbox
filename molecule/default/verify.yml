@@ -204,11 +204,8 @@
         fail_msg: "GET /api/status/ answered {{ netbox_status.status | default('nothing') }}"
         success_msg: "NetBox serves its API to an authenticated client"
 
-    # Tying the running NetBox to the version pinned in defaults/main.yml is
-    # what makes this scenario a real test of the tag Renovate bumps: a bump to
-    # an image that cannot boot or migrate cannot pass here. Both halves of the
-    # compound tag are checked, so a pin that moved onto the bare NetBox track
-    # (which has happened here) fails rather than passing quietly.
+    # Note that a pin that moved onto the bare NetBox track
+    # fails rather than passing quietly.
     - name: Assert the running NetBox is the version this role installs
       ansible.builtin.assert:
         that:
