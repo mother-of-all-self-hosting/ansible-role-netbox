@@ -211,13 +211,8 @@
         that:
           - netbox_status.json['netbox-version'] == netbox_verify_netbox_version
           - netbox_status.json['netbox-full-version'] == netbox_verify_netbox_version ~ '-Docker-' ~ netbox_verify_docker_version
-        fail_msg: >-
-          NetBox reports {{ netbox_status.json['netbox-full-version'] | default('no version') }},
-          expected {{ netbox_verify_netbox_version }}-Docker-{{ netbox_verify_docker_version }}
-          for the pinned {{ netbox_defaults.netbox_version }}
-        success_msg: >-
-          The running NetBox reports {{ netbox_status.json['netbox-full-version'] }},
-          matching the pinned {{ netbox_defaults.netbox_version }}
+        fail_msg: "NetBox reports {{ netbox_status.json['netbox-full-version'] | default('none') }}, expected {{ netbox_verify_netbox_version }}-Docker-{{ netbox_verify_docker_version }} for the pinned {{ netbox_defaults.netbox_version }}"
+        success_msg: "NetBox reports {{ netbox_status.json['netbox-full-version'] }}"
 
     # `netbox-worker.service` runs `manage.py rqworker` in the application
     # container, and a worker announces itself by registering in Redis. NetBox
