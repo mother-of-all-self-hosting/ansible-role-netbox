@@ -342,7 +342,7 @@
         msg:
           - "NetBox systemd: {{ netbox_service.status.ActiveState }}"
           - "NetBox worker systemd: {{ netbox_worker_service.status.ActiveState }}"
-          - "NetBox version: {{ netbox_status.json['netbox-full-version'] }} (pinned {{ netbox_defaults.netbox_version }})"
+          - "NetBox version: {{ netbox_status.json['netbox-full-version'] }}"
           - "NetBox migrations: applied"
           - "NetBox Django: {{ netbox_status.json['django-version'] }}, Python: {{ netbox_status.json['python-version'] }}"
           - "NetBox rq workers running: {{ netbox_workers.json['rq-workers-running'] }}"
