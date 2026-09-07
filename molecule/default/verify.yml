@@ -50,52 +50,70 @@
         netbox_verify_netbox_version: "{{ netbox_defaults.netbox_version | regex_replace('^v', '') | regex_replace('-.*$', '') }}"
         netbox_verify_docker_version: "{{ netbox_defaults.netbox_version | regex_replace('^[^-]*-', '') }}"
 
-    - name: Wait for NetBox service to become active (up to 180s)
-      ansible.builtin.systemd:
+    - name: Wait for the NetBox systemd service to become active (up to 180s)
+      ansible.builtin.systemd_service:
         name: netbox.service
       register: netbox_service
       until: netbox_service.status.ActiveState == 'active'
       retries: 36
       delay: 5
+      # So that giving up is reported by the assertion below rather than as a
+      # wall of systemd unit properties.
+      failed_when: false
 
-    - name: Assert NetBox service is active
+    # `Restart=always` in the systemd unit means that even a container which crashes
+    # and gets restarted reads as active here, so this is a precondition rather than
+    # a result.
+    - name: Assert the NetBox systemd service is active
       ansible.builtin.assert:
         that: netbox_service.status.ActiveState == 'active'
-        fail_msg: "netbox.service not active ({{ netbox_service.status.ActiveState }})"
+        fail_msg: "netbox.service is not active ({{ netbox_service.status.ActiveState }})"
         success_msg: "netbox.service is active"
 
-    - name: Wait for NetBox worker service to become active (up to 180s)
-      ansible.builtin.systemd:
+    - name: Wait for the NetBox worker systemd service to become active (up to 180s)
+      ansible.builtin.systemd_service:
         name: netbox-worker.service
       register: netbox_worker_service
       until: netbox_worker_service.status.ActiveState == 'active'
       retries: 36
       delay: 5
+      # So that giving up is reported by the assertion below rather than as a
+      # wall of systemd unit properties.
+      failed_when: false
 
-    - name: Assert NetBox worker service is active
+    # `Restart=always` in the systemd unit means that even a container which crashes
+    # and gets restarted reads as active here, so this is a precondition rather than
+    # a result.
+    - name: Assert the NetBox worker systemd service is active
       ansible.builtin.assert:
         that: netbox_worker_service.status.ActiveState == 'active'
-        fail_msg: "netbox-worker.service not active ({{ netbox_worker_service.status.ActiveState }})"
+        fail_msg: "netbox-worker.service is not active ({{ netbox_worker_service.status.ActiveState }})"
         success_msg: "netbox-worker.service is active"
 
     - name: Run if housekeeping script for NetBox is installed
       when: netbox_housekeeping_script_enabled | bool
       block:
-        - name: Wait for NetBox housekeeping service to become active (up to 180s)
-          ansible.builtin.systemd:
+        - name: Wait for the NetBox housekeeping systemd service to become active (up to 180s)
+          ansible.builtin.systemd_service:
             name: netbox-housekeeping.service
           register: netbox_housekeeping_service
           until: netbox_housekeeping_service.status.ActiveState == 'active'
           retries: 36
           delay: 5
+          # So that giving up is reported by the assertion below rather than as a
+          # wall of systemd unit properties.
+          failed_when: false
 
-        - name: Assert NetBox housekeeping service is active
+          # `Restart=always` in the systemd unit means that even a container which crashes
+          # and gets restarted reads as active here, so this is a precondition rather than
+          # a result.
+        - name: Assert the NetBox housekeeping systemd service is active
           ansible.builtin.assert:
             that: netbox_housekeeping_service.status.ActiveState == 'active'
-            fail_msg: "netbox-housekeeping.service not active ({{ netbox_housekeeping_service.status.ActiveState }})"
+            fail_msg: "netbox-housekeeping.service is not active ({{ netbox_housekeeping_service.status.ActiveState }})"
             success_msg: "netbox-housekeeping.service is active"
 
-    - name: Retrieve NetBox service log for debugging
+    - name: Retrieve the NetBox systemd service log for debugging
       when: netbox_debug_service_enabled | bool
       ansible.builtin.command:
         cmd: journalctl -xeu netbox.service
