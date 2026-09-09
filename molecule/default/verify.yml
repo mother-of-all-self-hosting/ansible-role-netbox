@@ -41,15 +41,6 @@
         file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
         name: netbox_defaults
 
-    # `netbox_version` pins a compound tag: the NetBox version and the
-    # netbox-docker version joined together, `v4.6.8-5.0.2`. The running
-    # application reports the same pair as `4.6.8-Docker-5.0.2`, so both halves
-    # of the literal Renovate bumps can be checked against the process.
-    - name: Derive the versions this role pins
-      ansible.builtin.set_fact:
-        netbox_verify_netbox_version: "{{ netbox_defaults.netbox_version | regex_replace('^v', '') | regex_replace('-.*$', '') }}"
-        netbox_verify_docker_version: "{{ netbox_defaults.netbox_version | regex_replace('^[^-]*-', '') }}"
-
     - name: Wait for the NetBox systemd service to become active (up to 180s)
       ansible.builtin.systemd_service:
         name: netbox.service
@@ -219,6 +210,15 @@
         that: netbox_status.status == 200
         fail_msg: "GET /api/status/ answered {{ netbox_status.status | default('none') }}"
         success_msg: "NetBox serves its API to an authenticated client"
+
+    # `netbox_version` pins a compound tag: the NetBox version and the
+    # netbox-docker version joined together, `v4.6.8-5.0.2`. The running
+    # application reports the same pair as `4.6.8-Docker-5.0.2`, so both halves
+    # of the literal Renovate bumps can be checked against the process.
+    - name: Derive the versions this role pins
+      ansible.builtin.set_fact:
+        netbox_verify_netbox_version: "{{ netbox_defaults.netbox_version | regex_replace('^v', '') | regex_replace('-.*$', '') }}"
+        netbox_verify_docker_version: "{{ netbox_defaults.netbox_version | regex_replace('^[^-]*-', '') }}"
 
     # Note that a pin that moved onto the bare NetBox track
     # fails rather than passing quietly.
