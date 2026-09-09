@@ -33,6 +33,8 @@
       psql -U {{ netbox_database_username | quote }} -d {{ netbox_database_name | quote }} -tAc
 
   tasks:
+    - name: Verify that NetBox works
+      block:
     # The role is not included in this playbook, so its defaults are not in
     # scope. Reading defaults/main.yml directly ties the version assertion
     # below.
@@ -366,3 +368,19 @@
           - "NetBox rq workers running: {{ netbox_workers.json['rq-workers-running'] }}"
           - "NetBox site round trip: API id {{ netbox_site_created.json.id }}, Postgres row '{{ netbox_site_row.stdout | trim }}'"
           - "NetBox metrics endpoint: {{ netbox_metrics.status }}"
+
+      rescue:
+        # Whatever went wrong, the reason is almost always in the systemd service log.
+        - name: Retrieve the NetBox systemd service log
+          ansible.builtin.command:
+            cmd: journalctl --no-pager --output=cat --unit=netbox.service
+          register: netbox_service_log
+          changed_when: false
+
+        - name: Show the NetBox systemd service log
+          ansible.builtin.debug:
+            var: netbox_service_log.stdout_lines
+
+        - name: Fail because verification did not pass
+          ansible.builtin.fail:
+            msg: "NetBox verification failed. The systemd service log is printed above."
