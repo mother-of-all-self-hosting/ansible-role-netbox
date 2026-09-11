@@ -32,6 +32,12 @@
       {{ postgres_identifier | default('postgres') }}
       psql -U {{ netbox_database_username | quote }} -d {{ netbox_database_name | quote }} -tAc
 
+    netbox_verify_units:
+      - netbox.service
+      - netbox-worker.service
+      - postgres.service
+      - valkey.service
+
   tasks:
     - name: Verify that NetBox works
       block:
@@ -43,13 +49,14 @@
             file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
             name: netbox_defaults
 
-        - name: Wait for the NetBox systemd service to become active (up to 180s)
+        - name: Wait for the NetBox systemd services to become active (up to 180s each)
           ansible.builtin.systemd_service:
-            name: netbox.service
-          register: netbox_service
-          until: netbox_service.status.ActiveState == 'active'
+            name: "{{ item }}"
+          register: netbox_services
+          until: netbox_services.status.ActiveState == 'active'
           retries: 36
           delay: 5
+          loop: "{{ netbox_verify_units }}"
           # So that giving up is reported by the assertion below rather than as a
           # wall of systemd unit properties.
           failed_when: false
@@ -57,60 +64,20 @@
         # `Restart=always` in the systemd unit means that even a container which crashes
         # and gets restarted reads as active here, so this is a precondition rather than
         # a result.
-        - name: Assert the NetBox systemd service is active
+        - name: Assert the NetBox systemd services are active
           ansible.builtin.assert:
-            that: netbox_service.status.ActiveState == 'active'
-            fail_msg: "netbox.service is not active ({{ netbox_service.status.ActiveState }})"
-            success_msg: "netbox.service is active"
+            that: netbox_services.results | map(attribute='status.ActiveState') | unique | list == ['active']
+            fail_msg: >-
+              Not every service is active:
+              {{ dict(netbox_verify_units | zip(netbox_services.results | map(attribute='status.ActiveState'))) }}
+            success_msg: "Every systemd service is active"
 
-        - name: Wait for the NetBox worker systemd service to become active (up to 180s)
-          ansible.builtin.systemd_service:
-            name: netbox-worker.service
-          register: netbox_worker_service
-          until: netbox_worker_service.status.ActiveState == 'active'
-          retries: 36
-          delay: 5
-          # So that giving up is reported by the assertion below rather than as a
-          # wall of systemd unit properties.
-          failed_when: false
-
-        # `Restart=always` in the systemd unit means that even a container which crashes
-        # and gets restarted reads as active here, so this is a precondition rather than
-        # a result.
-        - name: Assert the NetBox worker systemd service is active
-          ansible.builtin.assert:
-            that: netbox_worker_service.status.ActiveState == 'active'
-            fail_msg: "netbox-worker.service is not active ({{ netbox_worker_service.status.ActiveState }})"
-            success_msg: "netbox-worker.service is active"
-
-        - name: Run if housekeeping script for NetBox is installed
-          when: netbox_housekeeping_script_enabled | bool
-          block:
-            - name: Wait for the NetBox housekeeping systemd service to become active (up to 180s)
-              ansible.builtin.systemd_service:
-                name: netbox-housekeeping.service
-              register: netbox_housekeeping_service
-              until: netbox_housekeeping_service.status.ActiveState == 'active'
-              retries: 36
-              delay: 5
-              # So that giving up is reported by the assertion below rather than as a
-              # wall of systemd unit properties.
-              failed_when: false
-
-              # `Restart=always` in the systemd unit means that even a container which crashes
-              # and gets restarted reads as active here, so this is a precondition rather than
-              # a result.
-            - name: Assert the NetBox housekeeping systemd service is active
-              ansible.builtin.assert:
-                that: netbox_housekeeping_service.status.ActiveState == 'active'
-                fail_msg: "netbox-housekeeping.service is not active ({{ netbox_housekeeping_service.status.ActiveState }})"
-                success_msg: "netbox-housekeeping.service is active"
-
-        - name: Retrieve the NetBox systemd service log for debugging
+        - name: Retrieve the NetBox systemd services log for debugging
           when: netbox_debug_service_enabled | bool
           ansible.builtin.command:
-            cmd: journalctl --no-pager --output=cat --unit=netbox.service
+            cmd: "journalctl --no-pager --output=cat --unit={{ item }}"
           changed_when: false
+          loop: "{{ netbox_verify_units }}"
 
         # None of the units above says anything about readiness, and the obvious
         # HTTP checks say even less. All three of these units are `Restart=always`,
@@ -360,8 +327,7 @@
         - name: Show the NetBox verification summary
           ansible.builtin.debug:
             msg:
-              - "NetBox systemd: {{ netbox_service.status.ActiveState }}"
-              - "NetBox worker systemd: {{ netbox_worker_service.status.ActiveState }}"
+              - "NetBox systemd: {% for unit, state in netbox_verify_units | zip(netbox_services.results | map(attribute='status.ActiveState')) %}{{ unit }} ({{ state }}){% if not loop.last %}, {% endif %}{% endfor %}"
               - "NetBox version: {{ netbox_status.json['netbox-full-version'] }}"
               - "NetBox migrations: applied"
               - "NetBox Django: {{ netbox_status.json['django-version'] }}, Python: {{ netbox_status.json['python-version'] }}"
