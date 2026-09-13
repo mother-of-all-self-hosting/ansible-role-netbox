@@ -30,6 +30,7 @@ provisioner:
       all:
         # Helper variables
         netbox_debug_service_enabled: false
+        netbox_restarts_check_enabled: true
 
         # Variables for NetBox
         netbox_uid: 1000
