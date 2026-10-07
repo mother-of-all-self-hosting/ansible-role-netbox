@@ -116,6 +116,58 @@ Generating a strong password (e.g. `pwgen -s 64 1`) is recommended for `netbox_e
 >[!NOTE]
 > Subsequent changes to the password will not affect an existing user's password.
 
+### Configuring Single-Sign-On (SSO) integration
+
+NetBox supports different [remote authentication](https://docs.netbox.dev/en/stable/configuration/remote-authentication/) backends, including those provided by the [Python Social Auth](https://python-social-auth.readthedocs.io/) library. This library is included in the NetBox container image by default, so you can invoke any [backend](https://github.com/python-social-auth/social-core/tree/master/social_core/backends) provided by it.
+
+Each module's Python file contains detailed information about how to configure it. It should be noted that module-specific configuration is passed as Python configuration (via `netbox_configuration_extra_python`), and **not as environment variables**.
+
+#### Keycloak
+
+To integrate with [Keycloak](https://www.keycloak.org/), add the following configuration to your `vars.yml` file:
+
+```yaml
+netbox_environment_variables_additional_variables: |
+  REMOTE_AUTH_ENABLED=True
+  REMOTE_AUTH_BACKEND=social_core.backends.keycloak.KeycloakOAuth2
+
+  # Space-separated names of groups that new users will be assigned to.
+  # These groups must be created manually (from the Admin panel's Groups section) before use.
+  REMOTE_AUTH_DEFAULT_GROUPS=
+
+netbox_configuration_extra_python: |
+  # These need to match your Client app information in Keycloak. See below
+  SOCIAL_AUTH_KEYCLOAK_KEY = ''
+  SOCIAL_AUTH_KEYCLOAK_SECRET = ''
+
+  # The value for this is retrieved from Keycloak -> Realm Settings -> Keys tab -> Public key button for RS256
+  SOCIAL_AUTH_KEYCLOAK_PUBLIC_KEY = ''
+
+  # The value for these are retrieved from Keycloak -> Realm Settings -> General tab -> OpenID Endpoint Configuration button
+  SOCIAL_AUTH_KEYCLOAK_AUTHORIZATION_URL = 'https://KEYCLOAK_URL/realms/REALM_IDENTIFIER/protocol/openid-connect/auth'
+  SOCIAL_AUTH_KEYCLOAK_ACCESS_TOKEN_URL = 'https://KEYCLOAK_URL/realms/REALM_IDENTIFIER/protocol/openid-connect/token'
+
+# If Keycloak is running on the same server, uncomment the lines below
+# and replace HOSTNAME with the hostname of the Keycloak server (e.g. mash.example.com or keycloak.example.com).
+# netbox_container_extra_arguments:
+#  - --add-host=HOSTNAME:{{ ansible_host }}
+```
+
+The Client app needs to be created and configured in a special way on the Keycloak side by:
+
+- activating **Client authentication**
+- **Valid redirect URIs**: `https://NETBOX_URL/oauth/complete/keycloak/`
+- **Web origins**: `https://NETBOX_URL/`
+- in **Advanced**, changing the following settings:
+  - **Request object signature algorithm** = `RS256`
+  - **User info signed response algorithm** = `RS256`
+- in **Client scopes** (for this Client app via the **Client scopes** tab, not for all apps via the left-most menu), configure the `*-dedicated` scope (e.g. `netbox-dedicated` if you named your Client app `netbox`) and in the **Mappers** tab, click **Configure a new mapper** add a new **Audience** mapper with the following settings:
+  - **Name** = anything you like (e.g. `netbox-audience`)
+  - **Included Client Audience** = the key of this Client app (e.g. `netbox`)
+  - **Add to access token** = On
+
+Refer to [this page](https://docs.netbox.dev/en/stable/configuration/remote-authentication/) on the NetBox documentation for additional environment variables controlling groups and permissions for new users (like `REMOTE_AUTH_DEFAULT_GROUPS`).
+
 ### Extending the configuration
 
 There are some additional things you may wish to configure about the service.
@@ -138,7 +190,7 @@ If you use the MASH playbook, the shortcut commands with the [`just` program](ht
 
 After running the command for installation, NetBox becomes available at the specified hostname like `https://example.com`.
 
-To get started, open the URL with a web browser to log in to the instance.
+To get started, open the URL with a web browser to log in to the instance. You can log in with the username (not email address) and password specified with the `netbox_environment_variable_superuser_*` variables.
 
 ## Troubleshooting
 
