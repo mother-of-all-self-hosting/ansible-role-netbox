@@ -263,9 +263,9 @@ netbox_container_cleanup_command: |
 # Specify database configuration
 netbox_database_hostname: ""
 netbox_database_port: 5432
-netbox_database_name: netbox
 netbox_database_username: netbox
 netbox_database_password: ""
+netbox_database_name: netbox
 
 # Specify Redis configuration
 netbox_redis_hostname: ""
