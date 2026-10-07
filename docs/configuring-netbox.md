@@ -20,19 +20,17 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Setting up NetBox
 
-This is an [Ansible](https://www.ansible.com/) role which installs [NetBox](https://ghostfol.io/) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
+This is an [Ansible](https://www.ansible.com/) role which installs [NetBox](https://docs.netbox.dev/en/stable/) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
 
-NetBox is a free software for wealth management to keep track of assets such as stocks, bonds, ETFs, etc.
+NetBox is an open-source web application that provides [IP address management (IPAM)](https://en.wikipedia.org/wiki/IP_address_management) and [data center infrastructure management (DCIM)](https://en.wikipedia.org/wiki/Data_center_management#Data_center_infrastructure_management) functionality.
 
-See the project's [documentation](https://ghostfol.io/en/features) to learn what NetBox does and why it might be useful to you.
+See the project's [documentation](https://docs.netbox.dev/en/stable/) to learn what NetBox does and why it might be useful to you.
 
 ## Prerequisites
 
 To run a NetBox instance it is necessary to prepare a [Postgres](https://www.postgresql.org/) database server and [Redis](https://redis.io/) database for managing cache data.
 
 If you are looking for Ansible roles for them, you can check out [ansible-role-postgres](https://github.com/mother-of-all-self-hosting/ansible-role-postgres) and [ansible-role-redis](https://github.com/mother-of-all-self-hosting/ansible-role-redis), both of which are maintained by the [Mother-of-All-Self-Hosting (MASH)](https://github.com/mother-of-all-self-hosting) team. The role for [Valkey](https://valkey.io/) ([ansible-role-valkey](https://github.com/mother-of-all-self-hosting/ansible-role-valkey)) is available as well.
-
-Refer to [this section](https://github.com/netbox/netbox/blob/main/README.md#technology-stack) on the official documentation to check server requirements.
 
 ## Adjusting the playbook configuration
 
@@ -66,51 +64,27 @@ netbox_hostname: "example.com"
 
 After adjusting the hostname, make sure to adjust your DNS records to point the domain to your server.
 
-**Note**: hosting NetBox under a subpath (by configuring the `netbox_path_prefix` variable) does not seem to be possible due to NetBox's technical limitations.
+### Set a random string
 
-### Set access token salt and JWT secret key
-
-You also need to set random strings to salt for access token and JWT secret key. They can be generated with `pwgen -s 64 1` or in another way.
+You also need to set a random string to the variable as below by adding the following configuration to your `vars.yml` file. The value can be generated with `pwgen -s 64 1` or in another way.
 
 ```yaml
-netbox_environment_variable_access_token_salt: RANDOM_ACCESS_TOKEN_SALT_HERE
-netbox_environment_variable_jwt_secret_key: RANDOM_SECRET_KEY_HERE
+netbox_environment_variable_secret_key: YOUR_SECRET_KEY_HERE
 ```
 
-### Configuring database
-
-#### Set variables for the database server
+### Set variables for the database server
 
 To have the NetBox instance connect to your Postgres server, add the following configuration to your `vars.yml` file.
 
 ```yaml
+netbox_database_hostname: YOUR_POSTGRES_SERVER_HOSTNAME_HERE
+netbox_database_port: 5432
 netbox_database_username: YOUR_POSTGRES_SERVER_USERNAME_HERE
 netbox_database_password: YOUR_POSTGRES_SERVER_PASSWORD_HERE
 netbox_database_name: YOUR_POSTGRES_SERVER_DATABASE_NAME_HERE
 ```
 
 Make sure to replace the placeholders with your own values.
-
-#### Configuring connection to the database server (optional)
-
-By default the role is configured to establish connection with the Postgres server via the Unix socket. You can mount the Unix socket by adding the following configuration to your `vars.yml` file:
-
-```yaml
-# Specify the path to the Postgres Unix socket path on the host (bind-mount source)
-netbox_database_socket_path_host: ""
-```
-
-Setting it enables to connect to the Postgres server via Unix socket mounted in the container at `/run-postgres/.s.PGSQL.5432`.
-
-If TCP connection is preferred, connection via the Unix socket can be disabled by adding the following configuration to your `vars.yml` file:
-
-```yaml
-# Disable the connection to Postgres server via a Unix socket
-netbox_database_socket_enabled: false
-
-netbox_database_hostname: YOUR_POSTGRES_SERVER_HOSTNAME_HERE
-netbox_database_port: 5432
-```
 
 ### Configure a Redis database
 
@@ -120,20 +94,27 @@ To enable the Redis database for NetBox, add the following configuration to your
 
 ```yaml
 netbox_redis_hostname: YOUR_REDIS_SERVER_HOSTNAME_HERE
-netbox_redis_password: YOUR_REDIS_SERVER_PASSWORD_HERE
 netbox_redis_port: 6379
+netbox_redis_username: YOUR_REDIS_SERVER_USERNAME_HERE
+netbox_redis_password: YOUR_REDIS_SERVER_PASSWORD_HERE
 ```
 
-Make sure to replace `YOUR_REDIS_SERVER_HOSTNAME_HERE` and `YOUR_REDIS_SERVER_PASSWORD_HERE` with your own values.
+Make sure to replace the placeholders with your own values.
 
-### Set Coingecko API keys (optional)
+### Set details for the admin user
 
-If you have either or both of *CoinGecko* Demo API key and *CoinGecko* Pro API key, you can specify them by adding the following configuration to your `vars.yml` file:
+You can create an instance's admin user by adding the following configuration to your `vars.yml` file. Make sure to replace values with your own ones.
 
 ```yaml
-netbox_environment_variable_api_key_coingecko_demo: YOUR_DEMO_KEY_HERE
-netbox_environment_variable_api_key_coingecko_pro: YOUR_PRO_KEY_HERE
+netbox_environment_variable_superuser_name: ADMIN_USERNAME_HERE
+netbox_environment_variable_superuser_email: ADMIN_EMAIL_ADDRESS_HERE
+netbox_environment_variable_superuser_password: ADMIN_PASSWORD_HERE
 ```
+
+Generating a strong password (e.g. `pwgen -s 64 1`) is recommended for `netbox_environment_variable_superuser_password`.
+
+>[!NOTE]
+> Subsequent changes to the password will not affect an existing user's password.
 
 ### Extending the configuration
 
@@ -142,8 +123,6 @@ There are some additional things you may wish to configure about the service.
 Take a look at:
 
 - [`defaults/main.yml`](../defaults/main.yml) for some variables that you can customize via your `vars.yml` file. You can override settings (even those that don't have dedicated playbook variables) using the `netbox_environment_variables_additional_variables` variable
-
-See its [environment variables](https://ghostfol.io/docs/self-hosting/environment-variables) for a complete list of NetBox's config options that you can put in `netbox_environment_variables_additional_variables`.
 
 ## Installing
 
@@ -159,15 +138,7 @@ If you use the MASH playbook, the shortcut commands with the [`just` program](ht
 
 After running the command for installation, NetBox becomes available at the specified hostname like `https://example.com`.
 
-To use it, open the URL `https://example.com/en/register` on a web browser and create a first user by clicking the "Create Account" button. **Note that the first user will be an administrator of the instance.**
-
-After creating the user and logging in to the instance, you can add bank and brokerage accounts by following the instruction on the UI.
-
-See "Resources" (available at `https://example.com/en/resources`) for details about how to use NetBox.
-
-### Disable signup (optional)
-
-As **registration is open to anyone by default**, you also would probably want to disable the signup form on "Admin Control" page. You can open the page from the header of the UI; it is also available at `https://example.com/en/admin`.
+To get started, open the URL with a web browser to log in to the instance.
 
 ## Troubleshooting
 
