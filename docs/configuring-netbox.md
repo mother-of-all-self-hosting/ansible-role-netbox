@@ -101,7 +101,7 @@ netbox_redis_password: YOUR_REDIS_SERVER_PASSWORD_HERE
 
 Make sure to replace the placeholders with your own values.
 
-### Set details for the admin user
+### Set administrator's account details
 
 You can create an instance's admin user by adding the following configuration to your `vars.yml` file. Make sure to replace values with your own ones.
 
@@ -114,7 +114,7 @@ netbox_environment_variable_superuser_password: ADMIN_PASSWORD_HERE
 Generating a strong password (e.g. `pwgen -s 64 1`) is recommended for `netbox_environment_variable_superuser_password`.
 
 >[!NOTE]
-> Subsequent changes to the password will not affect an existing user's password.
+> Subsequent changes to them will not affect the existing user.
 
 ### Configuring Single-Sign-On (SSO) integration
 
