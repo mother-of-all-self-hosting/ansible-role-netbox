@@ -103,7 +103,7 @@ Make sure to replace the placeholders with your own values.
 
 ### Set administrator's account details
 
-You can create an instance's admin user by adding the following configuration to your `vars.yml` file. Make sure to replace values with your own ones.
+You also need to specify administrator's account details by adding the following configuration to your `vars.yml` file:
 
 ```yaml
 netbox_environment_variable_superuser_name: ADMIN_USERNAME_HERE
