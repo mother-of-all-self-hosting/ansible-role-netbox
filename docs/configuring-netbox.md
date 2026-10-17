@@ -168,6 +168,12 @@ The Client app needs to be created and configured in a special way on the Keyclo
 
 Refer to [this page](https://docs.netbox.dev/en/stable/configuration/remote-authentication/) on the NetBox documentation for additional environment variables controlling groups and permissions for new users (like `REMOTE_AUTH_DEFAULT_GROUPS`).
 
+### Integrating with Prometheus (optional)
+
+NetBox can natively expose metrics to Prometheus.
+
+If you are looking for an integration, you can check out the MASH playbook. Refer to [this section of the documentation on the playbook](https://github.com/mother-of-all-self-hosting/mash-playbook/blob/main/docs/services/netbox.md#integrating-with-prometheus-optional) for more information.
+
 ### Extending the configuration
 
 There are some additional things you may wish to configure about the service.
