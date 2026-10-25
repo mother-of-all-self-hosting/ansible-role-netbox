@@ -172,7 +172,7 @@ Refer to [this page](https://docs.netbox.dev/en/stable/configuration/remote-auth
 
 NetBox can natively expose metrics to Prometheus.
 
-If you are looking for an integration, you can check out the MASH playbook. Refer to [this section of the documentation on the playbook](https://github.com/mother-of-all-self-hosting/mash-playbook/blob/main/docs/services/netbox.md#integrating-with-prometheus-optional) for more information.
+If you are looking for an integration, you can check out the MASH playbook. Refer to [this section of the documentation on the playbook](https://github.com/mother-of-all-self-hosting/mash-playbook/blob/main/components/netbox/README.md#integrating-with-prometheus-optional) for more information.
 
 ### Extending the configuration
 
