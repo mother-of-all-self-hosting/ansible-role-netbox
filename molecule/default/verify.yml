@@ -301,6 +301,33 @@
               database '{{ netbox_database_name }}' - NetBox is not using it
             success_msg: "The Postgres database '{{ netbox_database_name }}' holds the site this scenario created"
 
+        # Uploads, such as device type images and image attachments, are written to
+        # the media folder, which the role creates on the host, sets the mode of and
+        # mounts into the container. With a mode the container user cannot write to,
+        # NetBox still passes every check above and fails only when a file is
+        # uploaded, so this check writes to the folder directly, as that user.
+        - name: Write and remove a file in the NetBox media folder as the container user
+          ansible.builtin.command:
+            argv:
+              - docker
+              - exec
+              - "--user={{ netbox_uid }}:{{ netbox_gid }}"
+              - "{{ netbox_defaults.netbox_identifier }}"
+              - sh
+              - -c
+              - touch /opt/netbox/netbox/media/.molecule-write-check && rm /opt/netbox/netbox/media/.molecule-write-check
+          register: netbox_media_write
+          changed_when: false
+          failed_when: false
+
+        - name: Assert the container user can write to the NetBox media folder
+          ansible.builtin.assert:
+            that: netbox_media_write.rc == 0
+            fail_msg: >-
+              The container user {{ netbox_uid }}:{{ netbox_gid }} could not write a file to the
+              media folder: {{ netbox_media_write.stderr | default('no output', true) }}
+            success_msg: "The container user can write to the NetBox media folder"
+
         # And one setting from the role's environment file is observed taking
         # effect in the process. `METRICS_ENABLED` is turned on by this scenario
         # alone (the role default is off, in which case this path is a 404), so a
@@ -373,6 +400,7 @@
               - "NetBox Django: {{ netbox_status.json['django-version'] }}, Python: {{ netbox_status.json['python-version'] }}"
               - "NetBox rq workers running: {{ netbox_workers.json['rq-workers-running'] }}"
               - "NetBox site round trip: API id {{ netbox_site_created.json.id }}, Postgres row '{{ netbox_site_row.stdout | trim }}'"
+              - "NetBox media folder: writable by the container user"
               - "NetBox metrics endpoint: {{ netbox_metrics.status }}"
 
       rescue:
