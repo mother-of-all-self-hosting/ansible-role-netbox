@@ -12,24 +12,24 @@
     group: "{{ netbox_gid }}"
   with_items:
     - path: "{{ netbox_base_path }}"
-      mode: 750
+      mode: "0750"
       when: true
     - path: "{{ netbox_config_path }}"
-      mode: 750
+      mode: "0750"
       when: true
     # Media is written by the `unit` user in the container,
     # so we're using more lax permissions for this path.
     - path: "{{ netbox_media_path }}"
-      mode: 777
+      mode: "0777"
       when: true
     - path: "{{ netbox_reports_path }}"
-      mode: 750
+      mode: "0750"
       when: true
     - path: "{{ netbox_scripts_path }}"
-      mode: 750
+      mode: "0750"
       when: true
     - path: "{{ netbox_customized_container_src_path }}"
-      mode: 750
+      mode: "0750"
       when: "{{ netbox_container_image_customizations_enabled }}"
   when: item.when | bool
 
@@ -43,13 +43,13 @@
   with_items:
     - src: "{{ role_path }}/templates/env.j2"
       dst: "{{ netbox_base_path }}/env"
-      mode: 640
+      mode: "0640"
     - src: "{{ role_path }}/templates/labels.j2"
       dst: "{{ netbox_base_path }}/labels"
-      mode: 640
+      mode: "0640"
     - src: "{{ role_path }}/templates/config/extra.py.j2"
       dst: "{{ netbox_config_path }}/extra.py"
-      mode: 444
+      mode: "0444"
   register: netbox_support_files_result
 
 - name: Ensure NetBox container image is pulled via community.docker.docker_image_pull
