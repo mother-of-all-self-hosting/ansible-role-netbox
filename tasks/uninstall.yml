@@ -41,7 +41,7 @@
       when: item.when | bool
 
     - name: Ensure NetBox container network does not exist
-      when: netbox_container_network_deletion_enabled
+      when: netbox_container_network_deletion_enabled and netbox_container_network != 'host'
       block:
         - name: Ensure NetBox container network does not exist via community.docker.docker_network
           when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
